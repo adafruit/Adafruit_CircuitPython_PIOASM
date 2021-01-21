@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
+import time
 import rp2pio
 import board
-import time
 import adafruit_pioasm
-import digitalio
 
 # NeoPixels are 800khz bit streams. Zeroes are 1/3 duty cycle (~416ns) and ones
 # are 2/3 duty cycle (~833ns).
