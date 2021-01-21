@@ -26,14 +26,16 @@ do_zero:
 
 assembled = adafruit_pioasm.assemble(program)
 
-sm = rp2pio.StateMachine(assembled,
-                         frequency=800000 * 6, # 800khz * 6 clocks per bit
-                         init=adafruit_pioasm.assemble("set pindirs 1"),
-                         first_set_pin=board.D12,
-                         first_sideset_pin=board.D12,
-                         auto_pull=True,
-                         out_shift_right=False,
-                         pull_threshold=8)
+sm = rp2pio.StateMachine(
+    assembled,
+    frequency=800000 * 6,  # 800khz * 6 clocks per bit
+    init=adafruit_pioasm.assemble("set pindirs 1"),
+    first_set_pin=board.D12,
+    first_sideset_pin=board.D12,
+    auto_pull=True,
+    out_shift_right=False,
+    pull_threshold=8,
+)
 print("real frequency", sm.frequency)
 
 for i in range(100):
