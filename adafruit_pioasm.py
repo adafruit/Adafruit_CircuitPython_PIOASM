@@ -25,8 +25,10 @@ MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
 MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
 
+
 def assemble(text_program):
     """Converts pioasm text to encoded instruction bytes"""
+    # pylint: disable=too-many-branches,too-many-statements
     assembled = []
     program_name = None
     labels = {}
@@ -60,7 +62,7 @@ def assemble(text_program):
         print(instruction)
         instruction = instruction.split()
         delay = 0
-        if instruction[-1].endswith("]"): # Delay
+        if instruction[-1].endswith("]"):  # Delay
             delay = int(instruction[-1].strip("[]"))
             if delay > max_delay:
                 raise RuntimeError("Delay too long:", delay)
@@ -100,23 +102,23 @@ def assemble(text_program):
                 raise RuntimeError("Wait num out of range")
             assembled[-1] |= num
             if instruction[-1] == "rel":
-                assembled[-1] |= 0x10 # Set the high bit of the irq value
+                assembled[-1] |= 0x10  # Set the high bit of the irq value
         elif instruction[0] == "in":
             #                instr delay src count
             assembled.append(0b010_00000_000_00000)
             assembled[-1] |= IN_SOURCES.index(instruction[1]) << 5
             count = int(instruction[-1])
-            if not 1 <= count <=32:
+            if not 1 <= count <= 32:
                 raise RuntimeError("Count out of range")
-            assembled[-1] |= (count & 0x1f) # 32 is 00000 so we mask the top
+            assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
         elif instruction[0] == "out":
             #                instr delay dst count
             assembled.append(0b011_00000_000_00000)
             assembled[-1] |= OUT_DESTINATIONS.index(instruction[1]) << 5
             count = int(instruction[-1])
-            if not 1 <= count <=32:
+            if not 1 <= count <= 32:
                 raise RuntimeError("Count out of range")
-            assembled[-1] |= (count & 0x1f) # 32 is 00000 so we mask the top
+            assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
         elif instruction[0] == "push" or instruction[0] == "pull":
             #                instr delay d i b zero
             assembled.append(0b100_00000_0_0_0_00000)
@@ -137,13 +139,13 @@ def assemble(text_program):
             #                instr delay z c w index
             assembled.append(0b110_00000_0_0_0_00000)
             if instruction[-1] == "rel":
-                assembled[-1] |= 0x10 # Set the high bit of the irq value
+                assembled[-1] |= 0x10  # Set the high bit of the irq value
                 instruction.pop()
             num = int(instruction[-1])
             if not 0 <= num <= 7:
                 raise RuntimeError("Interrupt index out of range")
             assembled[-1] |= num
-            if len(instruction) == 3: # after rel has been removed
+            if len(instruction) == 3:  # after rel has been removed
                 if instruction[1] == "wait":
                     assembled[-1] |= 0x20
                 elif instruction[1] == "clear":
@@ -154,7 +156,7 @@ def assemble(text_program):
             assembled.append(0b111_00000_000_00000)
             assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
             value = int(instruction[-1])
-            if not 0 <= value <=31:
+            if not 0 <= value <= 31:
                 raise RuntimeError("Set value out of range")
             assembled[-1] |= value
         else:

@@ -23,14 +23,15 @@ Table of Contents
 .. toctree::
     :caption: Tutorials
 
-.. todo:: Add any Learn guide links here. If there are none, then simply delete this todo and leave
-    the toctree above for use later.
+    Getting Started with Raspberry Pi Pico and CircuitPython <https://learn.adafruit.com/getting-started-with-raspberry-pi-pico-circuitpython>
 
 .. toctree::
     :caption: Related Products
 
-.. todo:: Add any product links here. If there are none, then simply delete this todo and leave
-    the toctree above for use later.
+    Adafruit ItsyBitsy RP2040 <https://www.adafruit.com/product/4888>
+    Adafruit Feather RP2040 <https://www.adafruit.com/product/4884>
+    Raspberry Pi Pico RP2040 <https://www.adafruit.com/product/4864>
+    Raspberry Pi Pico RP2040 with Loose Headers <https://www.adafruit.com/product/4883>
 
 .. toctree::
     :caption: Other Links

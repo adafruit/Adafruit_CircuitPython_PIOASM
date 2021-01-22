@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
+import time
 import rp2pio
 import board
-import time
 import adafruit_pioasm
-import digitalio
 
 # NeoPixels are 800khz bit streams. Zeroes are 1/3 duty cycle (~416ns) and ones
 # are 2/3 duty cycle (~833ns).
@@ -26,14 +25,16 @@ do_zero:
 
 assembled = adafruit_pioasm.assemble(program)
 
-sm = rp2pio.StateMachine(assembled,
-                         frequency=800000 * 6, # 800khz * 6 clocks per bit
-                         init=adafruit_pioasm.assemble("set pindirs 1"),
-                         first_set_pin=board.D12,
-                         first_sideset_pin=board.D12,
-                         auto_pull=True,
-                         out_shift_right=False,
-                         pull_threshold=8)
+sm = rp2pio.StateMachine(
+    assembled,
+    frequency=800000 * 6,  # 800khz * 6 clocks per bit
+    init=adafruit_pioasm.assemble("set pindirs 1"),
+    first_set_pin=board.D12,
+    first_sideset_pin=board.D12,
+    auto_pull=True,
+    out_shift_right=False,
+    pull_threshold=8,
+)
 print("real frequency", sm.frequency)
 
 for i in range(100):

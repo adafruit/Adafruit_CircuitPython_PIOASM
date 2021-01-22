@@ -2,11 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
+import time
 import rp2pio
 import board
-import time
 import adafruit_pioasm
-import digitalio
 
 squarewave = """
 .program squarewave
@@ -16,10 +15,12 @@ squarewave = """
 
 assembled = adafruit_pioasm.assemble(squarewave)
 
-sm = rp2pio.StateMachine(assembled,
-                         frequency=80,
-                         init=adafruit_pioasm.assemble("set pindirs 1"),
-                         first_set_pin=board.LED)
+sm = rp2pio.StateMachine(
+    assembled,
+    frequency=80,
+    init=adafruit_pioasm.assemble("set pindirs 1"),
+    first_set_pin=board.LED,
+)
 print("real frequency", sm.frequency)
 
 time.sleep(120)
