@@ -96,7 +96,7 @@ def assemble(text_program):
             if not 0 <= polarity <= 1:
                 raise RuntimeError("Invalid polarity")
             assembled[-1] |= polarity << 7
-            assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 4
+            assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
             num = int(instruction[3])
             if not 0 <= num <= 31:
                 raise RuntimeError("Wait num out of range")
