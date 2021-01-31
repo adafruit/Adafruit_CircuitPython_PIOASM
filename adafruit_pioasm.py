@@ -60,6 +60,8 @@ def assemble(text_program):
     assembled = []
     for instruction in instructions:
         print(instruction)
+        if len(instruction) == 0:
+            continue
         instruction = instruction.split()
         delay = 0
         if instruction[-1].endswith("]"):  # Delay
