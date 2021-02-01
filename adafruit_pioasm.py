@@ -126,7 +126,7 @@ def assemble(text_program):
                 assembled[-1] |= 0x80
             if instruction[-1] == "block" or not instruction[-1].endswith("block"):
                 assembled[-1] |= 0x20
-            if instruction[1] in ("ifempty", "iffull"):
+            if len(instruction) > 1 and instruction[1] in ("ifempty", "iffull"):
                 assembled[-1] |= 0x40
         elif instruction[0] == "mov":
             #                instr delay dst op src
