@@ -53,15 +53,13 @@ def assemble(text_program):
             sideset_count = int(line.split()[1])
         elif line.endswith(":"):
             labels[line[:-1]] = len(instructions)
-        else:
+        elif line: # Only add as an instruction if the line isn't empty
             instructions.append(line)
 
     max_delay = 2 ** (5 - sideset_count) - 1
     assembled = []
     for instruction in instructions:
         print(instruction)
-        if len(instruction) == 0:
-            continue
         instruction = instruction.split()
         delay = 0
         if instruction[-1].endswith("]"):  # Delay
