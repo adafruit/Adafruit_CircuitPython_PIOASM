@@ -134,7 +134,7 @@ def assemble(text_program):
             assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
             assembled[-1] |= MOV_SOURCES.index(instruction[-1])
             if len(instruction) > 3:
-                assembled[-1] |= MOV_OPS.index(instruction[-2])
+                assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
         elif instruction[0] == "irq":
             #                instr delay z c w index
             assembled.append(0b110_00000_0_0_0_00000)
