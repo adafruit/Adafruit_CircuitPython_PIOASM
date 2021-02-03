@@ -53,7 +53,8 @@ def assemble(text_program):
             sideset_count = int(line.split()[1])
         elif line.endswith(":"):
             labels[line[:-1]] = len(instructions)
-        elif line: # Only add as an instruction if the line isn't empty
+        elif line:
+            # Only add as an instruction if the line isn't empty
             instructions.append(line)
 
     max_delay = 2 ** (5 - sideset_count) - 1
