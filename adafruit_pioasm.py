@@ -60,7 +60,7 @@ def assemble(text_program):
     max_delay = 2 ** (5 - sideset_count) - 1
     assembled = []
     for instruction in instructions:
-#        print(instruction)
+        # print(instruction)
         instruction = instruction.split()
         delay = 0
         if instruction[-1].endswith("]"):  # Delay
@@ -163,6 +163,6 @@ def assemble(text_program):
         else:
             raise RuntimeError("Unknown instruction:" + instruction)
         assembled[-1] |= delay << 8
-#        print(hex(assembled[-1]))
+    # print(hex(assembled[-1]))
 
     return array.array("H", assembled)
