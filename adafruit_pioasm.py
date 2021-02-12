@@ -14,7 +14,7 @@ Simple assembler to convert pioasm to bytes
 import array
 import re
 
-splitter = re.compile(r',\s*|\s+(?:,\s*)?').split
+splitter = re.compile(r",\s*|\s+(?:,\s*)?").split
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PIOASM.git"
