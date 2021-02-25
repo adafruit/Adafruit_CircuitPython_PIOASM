@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: MIT
 #
-# Adapted from the an example in Appendix C of file:///tmp/mozilla_jepler0/RPi_PiPico_Digital_v10.pdf
+# Adapted from the an example in Appendix C of RPi_PiPico_Digital_v10.pdf
 
-import adafruit_pioasm
+import time
 import board
 import rp2pio
-import time
+import adafruit_pioasm
 
 led_quarter_brightness = adafruit_pioasm.assemble(
     """
