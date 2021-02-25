@@ -55,7 +55,10 @@ def assemble(text_program):
         elif line.startswith(".side_set"):
             sideset_count = int(line.split()[1])
         elif line.endswith(":"):
-            labels[line[:-1]] = len(instructions)
+            label = line[:-1]
+            if label in labels:
+                raise SyntaxError(f"Duplicate label {repr(label)}")
+            labels[label] = len(instructions)
         elif line:
             # Only add as an instruction if the line isn't empty
             instructions.append(line)
