@@ -4,11 +4,11 @@
 #
 # Adapted from the example https://github.com/raspberrypi/pico-examples/tree/master/pio/pio_blink
 
-import adafruit_pioasm
-import board
 import array
-import rp2pio
 import time
+import board
+import rp2pio
+import adafruit_pioasm
 
 blink = adafruit_pioasm.assemble(
     """
