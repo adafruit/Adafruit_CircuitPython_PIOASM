@@ -14,6 +14,10 @@ hello = """
 loop:
     pull
     out pins, 1
+; This program uses a 'jmp' at the end to follow the example.  However,
+; in a many cases (including this one!) there is no jmp needed at the end
+; and the default "wrap" behavior will automatically return to the "pull"
+; instruction at the beginning.
     jmp loop
 """
 
