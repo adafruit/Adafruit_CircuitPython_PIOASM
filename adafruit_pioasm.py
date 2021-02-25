@@ -88,10 +88,13 @@ def assemble(text_program):
         elif instruction[0] == "jmp":
             #                instr delay cnd addr
             assembled.append(0b000_00000_000_00000)
-            if instruction[-1] in labels:
-                assembled[-1] |= labels[instruction[-1]]
+            target = instruction[-1]
+            if target[:1] in "0123456789":
+                assembled[-1] |= int(target)
+            elif instruction[-1] in labels:
+                assembled[-1] |= labels[target]
             else:
-                assembled[-1] |= int(instruction[-1])
+                raise SyntaxError(f"Invalid jmp target {repr(target)}")
 
             if len(instruction) > 2:
                 assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
