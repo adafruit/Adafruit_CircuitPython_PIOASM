@@ -2,13 +2,11 @@
 #
 # SPDX-License-Identifier: MIT
 
-import audiocore
-import audiopwmio
+import array
+import math
+import time
 import board
 import digitalio
-import array
-import time
-import math
 import rp2pio
 import adafruit_pioasm
 

@@ -2,10 +2,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-import board
-import digitalio
 import array
 import time
+import board
+import digitalio
 import rp2pio
 import adafruit_pioasm
 
