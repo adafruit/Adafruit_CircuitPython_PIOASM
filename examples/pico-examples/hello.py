@@ -21,9 +21,7 @@ assembled = adafruit_pioasm.assemble(hello)
 
 sm = rp2pio.StateMachine(
     assembled,
-    frequency=80,
-    init=adafruit_pioasm.assemble("set pindirs 1"),
-    first_set_pin=board.LED,
+    frequency=2000,
     first_out_pin=board.LED,
 )
 print("real frequency", sm.frequency)
