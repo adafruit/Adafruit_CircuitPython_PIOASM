@@ -31,7 +31,7 @@ SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
 
 def assemble(text_program):
     """Converts pioasm text to encoded instruction bytes"""
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     assembled = []
     program_name = None
     labels = {}
