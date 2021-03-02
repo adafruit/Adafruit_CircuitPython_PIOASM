@@ -5,6 +5,7 @@
 import time
 import rp2pio
 import board
+import microcontroller
 import adafruit_pioasm
 
 # NeoPixels are 800khz bit streams. Zeroes are 1/3 duty cycle (~416ns) and ones
@@ -25,20 +26,30 @@ do_zero:
 
 assembled = adafruit_pioasm.assemble(program)
 
+# If the board has a designated neopixel, then use it. Otherwise use
+# GPIO16 as an arbitrary choice.
+if hasattr(board, "NEOPIXEL"):
+    NEOPIXEL = board.NEOPIXEL
+else:
+    NEOPIXEL = microcontroller.pin.GPIO16
+
 sm = rp2pio.StateMachine(
     assembled,
     frequency=800000 * 6,  # 800khz * 6 clocks per bit
-    init=adafruit_pioasm.assemble("set pindirs 1"),
-    first_set_pin=board.D12,
-    first_sideset_pin=board.D12,
+    first_set_pin=NEOPIXEL,
+    first_sideset_pin=NEOPIXEL,
     auto_pull=True,
     out_shift_right=False,
     pull_threshold=8,
 )
 print("real frequency", sm.frequency)
 
-for i in range(100):
+for i in range(30):
     sm.write(b"\x0a\x00\x00")
+    time.sleep(0.1)
+    sm.write(b"\x00\x0a\x00")
+    time.sleep(0.1)
+    sm.write(b"\x00\x00\x0a")
     time.sleep(0.1)
 print("writes done")
 
