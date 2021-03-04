@@ -36,7 +36,6 @@ else:
 sm = rp2pio.StateMachine(
     assembled,
     frequency=800000 * 6,  # 800khz * 6 clocks per bit
-    first_set_pin=NEOPIXEL,
     first_sideset_pin=NEOPIXEL,
     auto_pull=True,
     out_shift_right=False,
