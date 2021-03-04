@@ -31,7 +31,7 @@ SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
 
 def assemble(text_program):
     """Converts pioasm text to encoded instruction bytes"""
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-statements,too-many-locals
     assembled = []
     program_name = None
     labels = {}
@@ -55,7 +55,10 @@ def assemble(text_program):
         elif line.startswith(".side_set"):
             sideset_count = int(line.split()[1])
         elif line.endswith(":"):
-            labels[line[:-1]] = len(instructions)
+            label = line[:-1]
+            if label in labels:
+                raise SyntaxError(f"Duplicate label {repr(label)}")
+            labels[label] = len(instructions)
         elif line:
             # Only add as an instruction if the line isn't empty
             instructions.append(line)
@@ -85,10 +88,13 @@ def assemble(text_program):
         elif instruction[0] == "jmp":
             #                instr delay cnd addr
             assembled.append(0b000_00000_000_00000)
-            if instruction[-1] in labels:
-                assembled[-1] |= labels[instruction[-1]]
+            target = instruction[-1]
+            if target[:1] in "0123456789":
+                assembled[-1] |= int(target)
+            elif instruction[-1] in labels:
+                assembled[-1] |= labels[target]
             else:
-                assembled[-1] |= int(instruction[-1])
+                raise SyntaxError(f"Invalid jmp target {repr(target)}")
 
             if len(instruction) > 2:
                 assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
