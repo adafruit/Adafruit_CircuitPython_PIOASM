@@ -15,6 +15,7 @@ import array
 import re
 
 splitter = re.compile(r",\s*|\s+(?:,\s*)?").split
+mov_splitter = re.compile('!|~|::').split
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PIOASM.git"
@@ -25,7 +26,6 @@ OUT_DESTINATIONS = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
 WAIT_SOURCES = ["gpio", "pin", "irq", None]
 MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
-MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
 
 
@@ -142,9 +142,20 @@ def assemble(text_program):
             #                instr delay dst op src
             assembled.append(0b101_00000_000_00_000)
             assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
-            assembled[-1] |= MOV_SOURCES.index(instruction[-1])
-            if len(instruction) > 3:
-                assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
+            source = instruction[-1]
+            source_split = mov_splitter(source)
+            if len(source_split) == 1:
+                assembled[-1] |= MOV_SOURCES.index(source)
+            else:
+                assembled[-1] |= MOV_SOURCES.index(source_split[1])
+                if source[:1] == "!":
+                    assembled[-1] |= 0x08
+                elif source[:1] == "~":
+                    assembled[-1] |= 0x08
+                elif source[:2] == "::":
+                    assembled[-1] |= 0x10
+                else:
+                    raise RuntimeError("Invalid mov operator:", source[:1])
         elif instruction[0] == "irq":
             #                instr delay z c w index
             assembled.append(0b110_00000_0_0_0_00000)
