@@ -170,7 +170,7 @@ def assemble(text_program):
                 raise RuntimeError("Set value out of range")
             assembled[-1] |= value
         else:
-            raise RuntimeError("Unknown instruction:" + instruction)
+            raise RuntimeError("Unknown instruction:" + instruction[0])
         assembled[-1] |= delay << 8
     # print(hex(assembled[-1]))
 
