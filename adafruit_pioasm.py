@@ -26,6 +26,7 @@ OUT_DESTINATIONS = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
 WAIT_SOURCES = ["gpio", "pin", "irq", None]
 MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
+MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
 
 
@@ -156,6 +157,8 @@ def assemble(text_program):
                     assembled[-1] |= 0x10
                 else:
                     raise RuntimeError("Invalid mov operator:", source[:1])
+            if len(instruction) > 3:
+                assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
         elif instruction[0] == "irq":
             #                instr delay z c w index
             assembled.append(0b110_00000_0_0_0_00000)
