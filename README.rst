@@ -77,7 +77,7 @@ Usage Example
 
     sm = rp2pio.StateMachine(
         assembled,
-        frequency=80,
+        frequency=2000,
         init=adafruit_pioasm.assemble("set pindirs 1"),
         first_set_pin=board.LED,
     )
