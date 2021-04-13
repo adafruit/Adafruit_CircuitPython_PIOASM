@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2021 Parsko
+#
+# SPDX-License-Identifier: MIT
+
+
 '''
 written by Parsko Apr 12, 2021
 
