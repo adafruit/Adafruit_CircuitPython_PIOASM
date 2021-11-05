@@ -43,8 +43,8 @@ class RXUART:
         return self.pio.frequency // 8
 
     @baudrate.setter
-    def baudrate(self, frequency):
-        self.pio.frequency = freqency * 8
+    def baudrate(self, frequency):  # pylint: disable=unused-argument
+        self.pio.frequency = freqency * 8  # pylint: disable=undefined-variable
 
     @property
     def in_waiting(self):
@@ -55,5 +55,5 @@ class RXUART:
         n = self.pio.readinto(b)
         return b[:n]
 
-    def readinto(self, buf):
-        return self.pio.readinto(n)
+    def readinto(self, buf):  # pylint: disable=unused-argument
+        return self.pio.readinto(n)  # pylint: disable=undefined-variable

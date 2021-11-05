@@ -5,11 +5,10 @@
 # This example is adapted in part from micropython:
 # https://github.com/micropython/micropython/pull/6894/files
 
-import adafruit_pioasm
-import board
-import rp2pio
 import array
-import digitalio
+import rp2pio
+import board
+import adafruit_pioasm
 
 
 class IncrementalEncoder:
@@ -111,7 +110,7 @@ encoder = IncrementalEncoder(board.GP2, board.GP3)
 
 old_value = None
 while True:
-    gen()
+    gen()  # pylint: disable=undefined-variable
 
     value = encoder.value
     if old_value != value:
