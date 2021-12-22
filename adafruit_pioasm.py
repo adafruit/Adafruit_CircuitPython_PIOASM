@@ -55,6 +55,7 @@ def assemble(text_program):
             pass
         elif line.startswith(".side_set"):
             sideset_count = int(line.split()[1])
+            sideset_enable = 1 if "opt" in line else 0
         elif line.endswith(":"):
             label = line[:-1]
             if label in labels:
@@ -64,7 +65,7 @@ def assemble(text_program):
             # Only add as an instruction if the line isn't empty
             instructions.append(line)
 
-    max_delay = 2 ** (5 - sideset_count) - 1
+    max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
     assembled = []
     for instruction in instructions:
         # print(instruction)
@@ -76,10 +77,13 @@ def assemble(text_program):
                 raise RuntimeError("Delay too long:", delay)
             instruction.pop()
         if len(instruction) > 1 and instruction[-2] == "side":
+            if sideset_count == 0:
+                raise RuntimeError("No side_set count set")
             sideset_value = int(instruction[-1])
             if sideset_value > 2 ** sideset_count:
                 raise RuntimeError("Sideset value too large")
-            delay |= sideset_value << (5 - sideset_count)
+            delay |= sideset_value << (5 - sideset_count - sideset_enable)
+            delay |= sideset_enable << 4
             instruction.pop()
             instruction.pop()
 
@@ -186,6 +190,6 @@ def assemble(text_program):
         else:
             raise RuntimeError("Unknown instruction:" + instruction[0])
         assembled[-1] |= delay << 8
-    # print(hex(assembled[-1]))
+        # print(bin(assembled[-1]))
 
     return array.array("H", assembled)
