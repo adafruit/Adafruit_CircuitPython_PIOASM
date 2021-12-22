@@ -38,6 +38,7 @@ def assemble(text_program):
     labels = {}
     instructions = []
     sideset_count = 0
+    sideset_enable = 0
     for line in text_program.split("\n"):
         line = line.strip()
         if not line:
