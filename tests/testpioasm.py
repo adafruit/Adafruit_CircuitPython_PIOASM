@@ -46,6 +46,7 @@ class TestNop(unittest.TestCase):
 
     def testSidesetOpt(self):
         self.assertAssemblesTo(".side_set 1 opt\nnop side 1", [0b101_11000_010_00_010])
+        self.assertAssemblesTo(".side_set 1 opt\nnop side 0", [0b101_10000_010_00_010])
         self.assertAssemblesTo(
             ".side_set 1 opt\nnop side 0 [1]", [0b101_10001_010_00_010]
         )
