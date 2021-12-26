@@ -44,6 +44,14 @@ class TestNop(unittest.TestCase):
         self.assertAssemblesTo(".side_set 1\nnop side 1", [0b101_10000_010_00_010])
         self.assertAssemblesTo(".side_set 1\nnop side 1 [1]", [0b101_10001_010_00_010])
 
+    def testSidesetOpt(self):
+        self.assertAssemblesTo(".side_set 1 opt\nnop side 1", [0b101_11000_010_00_010])
+        self.assertAssemblesTo(".side_set 1 opt\nnop side 0", [0b101_10000_010_00_010])
+        self.assertAssemblesTo(
+            ".side_set 1 opt\nnop side 0 [1]", [0b101_10001_010_00_010]
+        )
+        self.assertAssemblesTo(".side_set 1 opt\nnop [1]", [0b101_00001_010_00_010])
+
     def testJmp(self):
         self.assertAssemblesTo("l:\njmp l", [0b000_00000_000_00000])
         self.assertAssemblesTo("l:\njmp 7", [0b000_00000_000_00111])
