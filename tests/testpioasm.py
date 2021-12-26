@@ -32,6 +32,10 @@ class TestNop(unittest.TestCase):
     def assertAssemblyFails(self, source):
         self.assertRaises(RuntimeError, adafruit_pioasm.assemble, source)
 
+    def assertPioKwargs(self, source, **kw):
+        program = adafruit_pioasm.Program(source)
+        self.assertEqual(kw, program.pio_kwargs)
+
     def testNonsense(self):
         self.assertAssemblyFails("nope")
 
@@ -41,8 +45,9 @@ class TestNop(unittest.TestCase):
             "nop\nnop", [0b101_00000_010_00_010, 0b101_00000_010_00_010]
         )
         self.assertAssemblesTo("nop [1]", [0b101_00001_010_00_010])
+        self.assertAssemblesTo("nop [31]", [0b101_11111_010_00_010])
         self.assertAssemblesTo(".side_set 1\nnop side 1", [0b101_10000_010_00_010])
-        self.assertAssemblesTo(".side_set 1\nnop side 1 [1]", [0b101_10001_010_00_010])
+        self.assertAssemblesTo(".side_set 1\nnop side 1 [15]", [0b101_11111_010_00_010])
 
     def testSidesetOpt(self):
         self.assertAssemblesTo(".side_set 1 opt\nnop side 1", [0b101_11000_010_00_010])
@@ -51,6 +56,13 @@ class TestNop(unittest.TestCase):
             ".side_set 1 opt\nnop side 0 [1]", [0b101_10001_010_00_010]
         )
         self.assertAssemblesTo(".side_set 1 opt\nnop [1]", [0b101_00001_010_00_010])
+        self.assertAssemblesTo(".side_set 1 opt\nnop [7]", [0b101_00111_010_00_010])
+        self.assertAssemblesTo(
+            ".side_set 1 opt\nnop side 1 [1]", [0b101_11001_010_00_010]
+        )
+        self.assertAssemblesTo(
+            ".side_set 1 opt\nnop side 0 [7]", [0b101_10111_010_00_010]
+        )
 
     def testJmp(self):
         self.assertAssemblesTo("l:\njmp l", [0b000_00000_000_00000])
@@ -75,3 +87,15 @@ class TestNop(unittest.TestCase):
         self.assertAssemblesTo("wait 0 irq 0 rel", [0b001_00000_0_10_10000])
         self.assertAssemblesTo("wait 1 irq 0", [0b001_00000_1_10_00000])
         self.assertAssemblesTo("wait 0 irq 1 rel", [0b001_00000_0_10_10001])
+
+    def testLimits(self):
+        self.assertAssemblyFails(".side_set 1\nnop side 2")
+        self.assertAssemblyFails(".side_set 1\nnop side 2 [1]")
+        self.assertAssemblyFails("nop [32]")
+        self.assertAssemblyFails(".side_set 1\nnop side 0 [16]")
+        self.assertAssemblyFails(".side_set 1 opt\nnop side 0 [8]")
+
+    def testCls(self):
+        self.assertPioKwargs("", sideset_count=0, sideset_enable=False)
+        self.assertPioKwargs(".side_set 1", sideset_count=1, sideset_enable=False)
+        self.assertPioKwargs(".side_set 3 opt", sideset_count=3, sideset_enable=True)
