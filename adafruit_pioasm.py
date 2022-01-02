@@ -105,7 +105,8 @@ def assemble(text_program):
             if len(instruction) > 2:
                 try:
                     assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
-                raise SyntaxError(f"Invalid jmp condition {instruction[1]}")
+                except ValueError:
+                    raise SyntaxError(f"Invalid jmp condition {instruction[1]}")
 
         elif instruction[0] == "wait":
             #                instr delay p sr index
