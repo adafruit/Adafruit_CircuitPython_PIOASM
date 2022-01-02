@@ -29,8 +29,11 @@ class TestNop(unittest.TestCase):
             f"Assembling {source!r}: Expected {expected_bin}, got {actual_bin}",
         )
 
-    def assertAssemblyFails(self, source):
-        self.assertRaises(RuntimeError, adafruit_pioasm.assemble, source)
+    def assertAssemblyFails(self, source, match=None, errtype=RuntimeError):
+        if match:
+            self.assertRaisesRegex(errtype, match, adafruit_pioasm.assemble, source)
+        else:
+            self.assertRaises(errtype, adafruit_pioasm.assemble, source)
 
     def testNonsense(self):
         self.assertAssemblyFails("nope")
@@ -52,6 +55,18 @@ class TestNop(unittest.TestCase):
         )
         self.assertAssemblesTo(".side_set 1 opt\nnop [1]", [0b101_00001_010_00_010])
 
+    def testMov(self):
+        # non happy path
+        self.assertAssemblyFails(
+            "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
+        )
+
+    def testSet(self):
+        # non happy path
+        self.assertAssemblyFails(
+            "set isr, 1", match="Invalid set destination 'isr'", errtype=ValueError
+        )
+
     def testJmp(self):
         self.assertAssemblesTo("l:\njmp l", [0b000_00000_000_00000])
         self.assertAssemblesTo("l:\njmp 7", [0b000_00000_000_00111])
@@ -63,6 +78,10 @@ class TestNop(unittest.TestCase):
         self.assertAssemblesTo("jmp x!=y, l\nl:", [0b000_00000_101_00001])
         self.assertAssemblesTo("jmp pin, l\nl:", [0b000_00000_110_00001])
         self.assertAssemblesTo("jmp !osre, l\nl:", [0b000_00000_111_00001])
+        # non happy path
+        self.assertAssemblyFails(
+            "jmp x--., l\nl:", match="Invalid jmp condition 'x--.'", errtype=ValueError
+        )
 
     def testWait(self):
         self.assertAssemblesTo("wait 0 gpio 0", [0b001_00000_0_00_00000])
