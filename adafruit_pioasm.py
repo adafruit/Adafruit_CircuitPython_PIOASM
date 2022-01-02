@@ -103,7 +103,9 @@ def assemble(text_program):
                 raise SyntaxError(f"Invalid jmp target {repr(target)}")
 
             if len(instruction) > 2:
-                assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
+                try:
+                    assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
+                raise SyntaxError(f"Invalid jmp condition {instruction[1]}")
 
         elif instruction[0] == "wait":
             #                instr delay p sr index
@@ -183,7 +185,10 @@ def assemble(text_program):
         elif instruction[0] == "set":
             #                instr delay dst data
             assembled.append(0b111_00000_000_00000)
-            assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
+            try:
+                assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
+            except ValueError:
+                raise RuntimeError(f"Uknnown set destination {instruction[1]}")
             value = int(instruction[-1])
             if not 0 <= value <= 31:
                 raise RuntimeError("Set value out of range")
