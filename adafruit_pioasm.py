@@ -106,8 +106,8 @@ def assemble(text_program):
                 try:
                     assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
                 except ValueError as exc:
-                    raise SyntaxError(
-                        f"Invalid jmp condition {instruction[1]}"
+                    raise ValueError(
+                        f"Invalid jmp condition '{instruction[1]}'"
                     ) from exc
 
         elif instruction[0] == "wait":
@@ -159,7 +159,7 @@ def assemble(text_program):
                 try:
                     assembled[-1] |= MOV_SOURCES.index(source)
                 except ValueError as exc:
-                    raise RuntimeError("Invalid mov source:", source) from exc
+                    raise ValueError(f"Invalid mov source '{source}'") from exc
             else:
                 assembled[-1] |= MOV_SOURCES.index(source_split[1])
                 if source[:1] == "!":
@@ -194,7 +194,7 @@ def assemble(text_program):
             try:
                 assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
             except ValueError as exc:
-                raise RuntimeError(f"Unknown set destination {instruction[1]}") from exc
+                raise ValueError(f"Invalid set destination '{instruction[1]}'") from exc
             value = int(instruction[-1])
             if not 0 <= value <= 31:
                 raise RuntimeError("Set value out of range")
