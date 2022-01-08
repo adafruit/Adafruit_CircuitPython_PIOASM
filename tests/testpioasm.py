@@ -18,7 +18,7 @@ def nice_opcode(o):
     return o[:3] + "_" + o[3:8] + "_" + o[8:]
 
 
-class TestNop(unittest.TestCase):
+class AssembleChecks(unittest.TestCase):
     def assertAssemblesTo(self, source, expected):
         actual = adafruit_pioasm.assemble(source)
         expected_bin = [nice_opcode(x) for x in expected]
@@ -35,6 +35,8 @@ class TestNop(unittest.TestCase):
         else:
             self.assertRaises(errtype, adafruit_pioasm.assemble, source)
 
+
+class TestNop(AssembleChecks):
     def testNonsense(self):
         self.assertAssemblyFails("nope")
 
@@ -54,12 +56,6 @@ class TestNop(unittest.TestCase):
             ".side_set 1 opt\nnop side 0 [1]", [0b101_10001_010_00_010]
         )
         self.assertAssemblesTo(".side_set 1 opt\nnop [1]", [0b101_00001_010_00_010])
-
-    def testMov(self):
-        # non happy path
-        self.assertAssemblyFails(
-            "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
-        )
 
     def testSet(self):
         # non happy path
@@ -94,3 +90,23 @@ class TestNop(unittest.TestCase):
         self.assertAssemblesTo("wait 0 irq 0 rel", [0b001_00000_0_10_10000])
         self.assertAssemblesTo("wait 1 irq 0", [0b001_00000_1_10_00000])
         self.assertAssemblesTo("wait 0 irq 1 rel", [0b001_00000_0_10_10001])
+
+
+class TestMov(AssembleChecks):
+    def testMovNonHappy(self):
+        # non happy path
+        self.assertAssemblyFails(
+            "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
+        )
+
+    def testMovInvert(self):
+        # test moving and inverting
+        self.assertAssemblesTo("mov x, ~ x", [0b101_00000_001_01_001])
+        self.assertAssemblesTo("mov x, ~ x", [0b101_00000_001_01_001])
+        self.assertAssemblesTo("mov x, ~x", [0b101_00000_001_01_001])
+        self.assertAssemblesTo("mov x, !x", [0b101_00000_001_01_001])
+
+    def testMovReverse(self):
+        # test moving and reversing bits
+        self.assertAssemblesTo("mov x, :: x", [0b101_00000_001_10_001])
+        self.assertAssemblesTo("mov x, ::x", [0b101_00000_001_10_001])
