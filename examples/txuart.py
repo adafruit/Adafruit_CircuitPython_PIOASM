@@ -25,7 +25,8 @@ bitloop: ; This loop will run 8 times (8n1 UART)
 
 class TXUART:
     def __init__(self, *, tx, baudrate=9600):
-        self.pio = rp2pio.StateMachine(code.assembled,
+        self.pio = rp2pio.StateMachine(
+            code.assembled,
             first_out_pin=tx,
             first_sideset_pin=tx,
             frequency=8 * baudrate,
@@ -33,7 +34,7 @@ class TXUART:
             initial_sideset_pin_direction=1,
             initial_out_pin_state=1,
             initial_out_pin_direction=1,
-            **code.pio_kwargs
+            **code.pio_kwargs,
         )
 
     @property

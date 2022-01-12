@@ -206,7 +206,9 @@ class Program:  # pylint: disable=too-few-public-methods
                 try:
                     assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
                 except ValueError as exc:
-                    raise ValueError(f"Invalid set destination '{instruction[1]}'") from exc
+                    raise ValueError(
+                        f"Invalid set destination '{instruction[1]}'"
+                    ) from exc
                 value = int(instruction[-1])
                 if not 0 <= value <= 31:
                     raise RuntimeError("Set value out of range")
