@@ -115,7 +115,12 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise SyntaxError(f"Invalid jmp target {repr(target)}")
 
                 if len(instruction) > 2:
-                    assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
+                    try:
+                        assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
+                    except ValueError as exc:
+                        raise ValueError(
+                            f"Invalid jmp condition '{instruction[1]}'"
+                        ) from exc
 
             elif instruction[0] == "wait":
                 #                instr delay p sr index
@@ -163,7 +168,10 @@ class Program:  # pylint: disable=too-few-public-methods
                 source = instruction[-1]
                 source_split = mov_splitter(source)
                 if len(source_split) == 1:
-                    assembled[-1] |= MOV_SOURCES.index(source)
+                    try:
+                        assembled[-1] |= MOV_SOURCES.index(source)
+                    except ValueError as exc:
+                        raise ValueError(f"Invalid mov source '{source}'") from exc
                 else:
                     assembled[-1] |= MOV_SOURCES.index(source_split[1])
                     if source[:1] == "!":
@@ -195,7 +203,10 @@ class Program:  # pylint: disable=too-few-public-methods
             elif instruction[0] == "set":
                 #                instr delay dst data
                 assembled.append(0b111_00000_000_00000)
-                assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
+                try:
+                    assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
+                except ValueError as exc:
+                    raise ValueError(f"Invalid set destination '{instruction[1]}'") from exc
                 value = int(instruction[-1])
                 if not 0 <= value <= 31:
                     raise RuntimeError("Set value out of range")

@@ -24,6 +24,7 @@ Table of Contents
     :caption: Tutorials
 
     Getting Started with Raspberry Pi Pico and CircuitPython <https://learn.adafruit.com/getting-started-with-raspberry-pi-pico-circuitpython>
+    An Introduction to RP2040 PIO with CircuitPython <https://learn.adafruit.com/intro-to-rp2040-pio-with-circuitpython>
 
 .. toctree::
     :caption: Related Products
