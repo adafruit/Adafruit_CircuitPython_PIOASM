@@ -38,8 +38,8 @@ Table of Contents
     :caption: Other Links
 
     Download <https://github.com/adafruit/Adafruit_CircuitPython_PIOASM/releases/latest>
-    CircuitPython Reference Documentation <https://circuitpython.readthedocs.io>
-    CircuitPython rp2pio Reference Documentation <https://circuitpython.readthedocs.io/en/latest/shared-bindings/rp2pio>
+    CircuitPython Reference Documentation <https://docs.circuitpython.org>
+    CircuitPython rp2pio Reference Documentation <https://docs.circuitpython.org/en/latest/shared-bindings/rp2pio>
     CircuitPython Support Forum <https://forums.adafruit.com/viewforum.php?f=60>
     Discord Chat <https://adafru.it/discord>
     Adafruit Learning System <https://learn.adafruit.com>
