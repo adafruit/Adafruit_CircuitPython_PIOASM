@@ -219,7 +219,7 @@ class Program:  # pylint: disable=too-few-public-methods
             # print(bin(assembled[-1]))
 
         self.pio_kwargs = {
-            "sideset_count": sideset_count,
+            "sideset_pin_count": sideset_count,
             "sideset_enable": sideset_enable,
         }
 

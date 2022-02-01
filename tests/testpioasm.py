@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Jeff Epler, written for Adafruit Industries
+# SPDX-FileCopyrightText: 2021 Jeff Epler, written for Adafruit Industriessideset_pin_count
 #
 # SPDX-License-Identifier: MIT
 
@@ -111,9 +111,11 @@ class TestNop(AssembleChecks):
         self.assertAssemblyFails(".side_set 1 opt\nnop side 0 [8]")
 
     def testCls(self):
-        self.assertPioKwargs("", sideset_count=0, sideset_enable=False)
-        self.assertPioKwargs(".side_set 1", sideset_count=1, sideset_enable=False)
-        self.assertPioKwargs(".side_set 3 opt", sideset_count=3, sideset_enable=True)
+        self.assertPioKwargs("", sideset_pin_count=0, sideset_enable=False)
+        self.assertPioKwargs(".side_set 1", sideset_pin_count=1, sideset_enable=False)
+        self.assertPioKwargs(
+            ".side_set 3 opt", sideset_pin_count=3, sideset_enable=True
+        )
 
 
 class TestMov(AssembleChecks):
