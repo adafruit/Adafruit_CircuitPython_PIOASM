@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Jeff Epler, written for Adafruit Industriessideset_pin_count
+# SPDX-FileCopyrightText: 2021 Jeff Epler, written for Adafruit Industries
 #
 # SPDX-License-Identifier: MIT
 
