@@ -40,16 +40,17 @@ class Program:  # pylint: disable=too-few-public-methods
 
     """
 
-    def __init__(self, text_program: str) -> None:
+    def __init__(self, text_program: str, *, build_debuginfo=False) -> None:
         """Converts pioasm text to encoded instruction bytes"""
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         assembled = []
         program_name = None
         labels = {}
+        linemap = []
         instructions = []
         sideset_count = 0
         sideset_enable = 0
-        for line in text_program.split("\n"):
+        for i, line in enumerate(text_program.split("\n")):
             line = line.strip()
             if not line:
                 continue
@@ -75,6 +76,7 @@ class Program:  # pylint: disable=too-few-public-methods
             elif line:
                 # Only add as an instruction if the line isn't empty
                 instructions.append(line)
+                linemap.append(i)
 
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
@@ -219,11 +221,58 @@ class Program:  # pylint: disable=too-few-public-methods
             # print(bin(assembled[-1]))
 
         self.pio_kwargs = {
-            "sideset_count": sideset_count,
+            "sideset_pin_count": sideset_count,
             "sideset_enable": sideset_enable,
         }
 
         self.assembled = array.array("H", assembled)
+
+        if build_debuginfo:
+            self.debuginfo = (linemap, text_program)
+        else:
+            self.debuginfo = None
+
+    def print_c_program(self, name, qualifier="const"):
+        """Print the program into a C program snippet"""
+        if self.debuginfo is None:
+            linemap = None
+            program_lines = None
+        else:
+            linemap = self.debuginfo[0][:]  # Use a copy since we destroy it
+            program_lines = self.debuginfo[1].split("\n")
+
+        print(
+            f"{qualifier} int {name}_sideset_pin_count = {self.pio_kwargs['sideset_pin_count']};"
+        )
+        print(
+            f"{qualifier} bool {name}_sideset_enable = {self.pio_kwargs['sideset_enable']};"
+        )
+        print(f"{qualifier} uint16_t {name}[] = " + "{")
+        last_line = 0
+        if linemap:
+            for inst in self.assembled:
+                next_line = linemap[0]
+                del linemap[0]
+                while last_line < next_line:
+                    line = program_lines[last_line]
+                    if line:
+                        print(f"            // {line}")
+                    last_line += 1
+                line = program_lines[last_line]
+                print(f"    0x{inst:04x}, // {line}")
+                last_line += 1
+            while last_line < len(program_lines):
+                line = program_lines[last_line]
+                if line:
+                    print(f"            // {line}")
+                last_line += 1
+        else:
+            for i in range(0, len(self.assembled), 8):
+                print(
+                    "    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8])
+                )
+        print("};")
+        print()
 
 
 def assemble(program_text: str) -> array.array:
