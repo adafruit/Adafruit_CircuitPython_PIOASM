@@ -137,8 +137,14 @@ class TestMov(AssembleChecks):
         self.assertAssemblesTo("mov x, :: x", [0b101_00000_001_10_001])
         self.assertAssemblesTo("mov x, ::x", [0b101_00000_001_10_001])
 
+
 class TestWrap(AssembleChecks):
     def testWrap(self):
         self.assertAssemblyFails(".wrap")
-        self.assertPioKwargs("nop\n.wrap_target\nnop\nnop\n.wrap", 
-            sideset_count=0, sideset_enable=False, wrap=2, wrap_target=1)
+        self.assertPioKwargs(
+            "nop\n.wrap_target\nnop\nnop\n.wrap",
+            sideset_pin_count=0,
+            sideset_enable=False,
+            wrap=2,
+            wrap_target=1,
+        )

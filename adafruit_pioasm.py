@@ -50,6 +50,8 @@ class Program:  # pylint: disable=too-few-public-methods
         instructions = []
         sideset_count = 0
         sideset_enable = 0
+        wrap = None
+        wrap_target = None
         for i, line in enumerate(text_program.split("\n")):
             line = line.strip()
             if not line:
@@ -61,13 +63,14 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError("Multiple programs not supported")
                 program_name = line.split()[1]
             elif line.startswith(".wrap_target"):
-                if len(instructions) > 0:
-                    raise RuntimeError("wrap_target not supported")
+                wrap_target = len(instructions)
             elif line.startswith(".wrap"):
-                pass
+                if len(instructions) == 0:
+                    raise RuntimeError("Cannot have .wrap as first instruction")
+                wrap = len(instructions) - 1
             elif line.startswith(".side_set"):
                 sideset_count = int(line.split()[1])
-                sideset_enable = 1 if "opt" in line else 0
+                sideset_enable = "opt" in line
             elif line.endswith(":"):
                 label = line[:-1]
                 if label in labels:
@@ -225,6 +228,11 @@ class Program:  # pylint: disable=too-few-public-methods
             "sideset_enable": sideset_enable,
         }
 
+        if wrap is not None:
+            self.pio_kwargs["wrap"] = wrap
+        if wrap_target is not None:
+            self.pio_kwargs["wrap_target"] = wrap_target
+
         self.assembled = array.array("H", assembled)
 
         if build_debuginfo:
@@ -241,6 +249,12 @@ class Program:  # pylint: disable=too-few-public-methods
             linemap = self.debuginfo[0][:]  # Use a copy since we destroy it
             program_lines = self.debuginfo[1].split("\n")
 
+        print(
+            f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};"
+        )
+        print(
+            f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};"
+        )
         print(
             f"{qualifier} int {name}_sideset_pin_count = {self.pio_kwargs['sideset_pin_count']};"
         )
