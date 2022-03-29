@@ -95,7 +95,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 if sideset_count == 0:
                     raise RuntimeError("No side_set count set")
                 sideset_value = int(instruction[-1])
-                if sideset_value >= 2 ** sideset_count:
+                if sideset_value >= 2**sideset_count:
                     raise RuntimeError("Sideset value too large")
                 delay |= sideset_value << (5 - sideset_count - sideset_enable)
                 delay |= sideset_enable << 4
