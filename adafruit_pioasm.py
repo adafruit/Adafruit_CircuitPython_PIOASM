@@ -224,9 +224,11 @@ class Program:  # pylint: disable=too-few-public-methods
             # print(bin(assembled[-1]))
 
         self.pio_kwargs = {
-            "sideset_pin_count": sideset_count,
             "sideset_enable": sideset_enable,
         }
+
+        if sideset_count != 0:
+            self.pio_kwargs["sideset_pin_count"] = sideset_count
 
         if wrap is not None:
             self.pio_kwargs["wrap"] = wrap
@@ -255,9 +257,8 @@ class Program:  # pylint: disable=too-few-public-methods
         print(
             f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};"
         )
-        print(
-            f"{qualifier} int {name}_sideset_pin_count = {self.pio_kwargs['sideset_pin_count']};"
-        )
+        sideset_pin_count = self.pio_kwargs.get("sideset_pin_count", 0)
+        print(f"{qualifier} int {name}_sideset_pin_count = {sideset_pin_count};")
         print(
             f"{qualifier} bool {name}_sideset_enable = {self.pio_kwargs['sideset_enable']};"
         )

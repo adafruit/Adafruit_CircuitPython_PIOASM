@@ -111,7 +111,7 @@ class TestNop(AssembleChecks):
         self.assertAssemblyFails(".side_set 1 opt\nnop side 0 [8]")
 
     def testCls(self):
-        self.assertPioKwargs("", sideset_pin_count=0, sideset_enable=False)
+        self.assertPioKwargs("", sideset_enable=False)
         self.assertPioKwargs(".side_set 1", sideset_pin_count=1, sideset_enable=False)
         self.assertPioKwargs(
             ".side_set 3 opt", sideset_pin_count=3, sideset_enable=True
@@ -143,7 +143,6 @@ class TestWrap(AssembleChecks):
         self.assertAssemblyFails(".wrap")
         self.assertPioKwargs(
             "nop\n.wrap_target\nnop\nnop\n.wrap",
-            sideset_pin_count=0,
             sideset_enable=False,
             wrap=2,
             wrap_target=1,
