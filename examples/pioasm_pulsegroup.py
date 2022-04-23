@@ -190,7 +190,7 @@ class PulseGroup:
 
         buf = array.array("L", make_sequence())
 
-        self._sm.start_continuous_write(buf)
+        self._sm.background_write(loop=buf)
 
     def _maybe_update(self):
         if self._auto_update:
@@ -237,20 +237,21 @@ class CyclicSignal:
         self._phase = (self._phase + delta) % 1
 
 
-pulsers = PulseGroup(board.SERVO_1, 18, auto_update=False)
-servos = [servo.Servo(p) for p in pulsers]
+if __name__ == "__main__":
+    pulsers = PulseGroup(board.SERVO_1, 18, auto_update=False)
+    servos = [servo.Servo(p) for p in pulsers]
 
-sine = np.sin(np.linspace(0, 2 * np.pi, 50, endpoint=False)) * 0.5 + 0.5
-print(sine)
+    sine = np.sin(np.linspace(0, 2 * np.pi, 50, endpoint=False)) * 0.5 + 0.5
+    print(sine)
 
-signals = [CyclicSignal(sine, i / len(servos)) for i in range(len(servos))]
+    signals = [CyclicSignal(sine, i / len(servos)) for i in range(len(servos))]
 
-t0 = adafruit_ticks.ticks_ms()
-while True:
-    t1 = adafruit_ticks.ticks_ms()
-    for servo, signal in zip(servos, signals):
-        signal.advance((t1 - t0) / 8000)
-        servo.fraction = signal.value
-    pulsers.update()
-    print(adafruit_ticks.ticks_diff(t1, t0), "ms")
-    t0 = t1
+    t0 = adafruit_ticks.ticks_ms()
+    while True:
+        t1 = adafruit_ticks.ticks_ms()
+        for servo, signal in zip(servos, signals):
+            signal.advance((t1 - t0) / 8000)
+            servo.fraction = signal.value
+        pulsers.update()
+        print(adafruit_ticks.ticks_diff(t1, t0), "ms")
+        t0 = t1
