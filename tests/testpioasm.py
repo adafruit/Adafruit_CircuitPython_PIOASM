@@ -128,7 +128,6 @@ class TestMov(AssembleChecks):
     def testMovInvert(self):
         # test moving and inverting
         self.assertAssemblesTo("mov x, ~ x", [0b101_00000_001_01_001])
-        self.assertAssemblesTo("mov x, ~ x", [0b101_00000_001_01_001])
         self.assertAssemblesTo("mov x, ~x", [0b101_00000_001_01_001])
         self.assertAssemblesTo("mov x, !x", [0b101_00000_001_01_001])
 
@@ -147,3 +146,16 @@ class TestWrap(AssembleChecks):
             wrap=2,
             wrap_target=1,
         )
+
+
+class TestRadix(AssembleChecks):
+    def testOctal(self):
+        self.assertAssemblesTo(".side_set 0o1\nset x, 0o11", [0b111_00000_001_01001])
+
+    def testBinary(self):
+        self.assertAssemblesTo(
+            ".side_set 0b101\nnop side 0b10001", [0b101_10001_010_00_010]
+        )
+
+    def testHex(self):
+        self.assertAssemblesTo(".side_set 0x0\nnop [0x10]", [0b101_10000_010_00_010])

@@ -69,7 +69,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError("Cannot have .wrap as first instruction")
                 wrap = len(instructions) - 1
             elif line.startswith(".side_set"):
-                sideset_count = int(line.split()[1])
+                sideset_count = int(line.split()[1], 0)
                 sideset_enable = "opt" in line
             elif line.endswith(":"):
                 label = line[:-1]
@@ -88,7 +88,7 @@ class Program:  # pylint: disable=too-few-public-methods
             instruction = splitter(instruction.strip())
             delay = 0
             if instruction[-1].endswith("]"):  # Delay
-                delay = int(instruction[-1].strip("[]"))
+                delay = int(instruction[-1].strip("[]"), 0)
                 if delay < 0:
                     raise RuntimeError("Delay negative:", delay)
                 if delay > max_delay:
@@ -97,7 +97,7 @@ class Program:  # pylint: disable=too-few-public-methods
             if len(instruction) > 1 and instruction[-2] == "side":
                 if sideset_count == 0:
                     raise RuntimeError("No side_set count set")
-                sideset_value = int(instruction[-1])
+                sideset_value = int(instruction[-1], 0)
                 if sideset_value >= 2**sideset_count:
                     raise RuntimeError("Sideset value too large")
                 delay |= sideset_value << (5 - sideset_count - sideset_enable)
@@ -113,7 +113,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 assembled.append(0b000_00000_000_00000)
                 target = instruction[-1]
                 if target[:1] in "0123456789":
-                    assembled[-1] |= int(target)
+                    assembled[-1] |= int(target, 0)
                 elif instruction[-1] in labels:
                     assembled[-1] |= labels[target]
                 else:
@@ -130,12 +130,12 @@ class Program:  # pylint: disable=too-few-public-methods
             elif instruction[0] == "wait":
                 #                instr delay p sr index
                 assembled.append(0b001_00000_0_00_00000)
-                polarity = int(instruction[1])
+                polarity = int(instruction[1], 0)
                 if not 0 <= polarity <= 1:
                     raise RuntimeError("Invalid polarity")
                 assembled[-1] |= polarity << 7
                 assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
-                num = int(instruction[3])
+                num = int(instruction[3], 0)
                 if not 0 <= num <= 31:
                     raise RuntimeError("Wait num out of range")
                 assembled[-1] |= num
@@ -145,7 +145,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 #                instr delay src count
                 assembled.append(0b010_00000_000_00000)
                 assembled[-1] |= IN_SOURCES.index(instruction[1]) << 5
-                count = int(instruction[-1])
+                count = int(instruction[-1], 0)
                 if not 1 <= count <= 32:
                     raise RuntimeError("Count out of range")
                 assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
@@ -153,7 +153,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 #                instr delay dst count
                 assembled.append(0b011_00000_000_00000)
                 assembled[-1] |= OUT_DESTINATIONS.index(instruction[1]) << 5
-                count = int(instruction[-1])
+                count = int(instruction[-1], 0)
                 if not 1 <= count <= 32:
                     raise RuntimeError("Count out of range")
                 assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
@@ -195,7 +195,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 if instruction[-1] == "rel":
                     assembled[-1] |= 0x10  # Set the high bit of the irq value
                     instruction.pop()
-                num = int(instruction[-1])
+                num = int(instruction[-1], 0)
                 if not 0 <= num <= 7:
                     raise RuntimeError("Interrupt index out of range")
                 assembled[-1] |= num
@@ -214,7 +214,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise ValueError(
                         f"Invalid set destination '{instruction[1]}'"
                     ) from exc
-                value = int(instruction[-1])
+                value = int(instruction[-1], 0)
                 if not 0 <= value <= 31:
                     raise RuntimeError("Set value out of range")
                 assembled[-1] |= value
