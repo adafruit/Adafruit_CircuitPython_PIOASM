@@ -102,7 +102,7 @@ class PulseGroup:
         pin_count,
         period=0.02,
         maxval=65535,
-        stagger=True,
+        stagger=False,
         auto_update=True,
     ):  # pylint: disable=too-many-arguments
         """Create a pulse group with the given characteristics"""
@@ -239,12 +239,19 @@ class CyclicSignal:
 
 if __name__ == "__main__":
     pulsers = PulseGroup(board.SERVO_1, 18, auto_update=False)
+    # Set the phase of each servo so that servo 0 starts at offset 0ms, servo 1
+    # at offset 2.5ms, ...
+    # For up to 8 servos, this means their duty cycles do not overlap.  Otherwise,
+    # servo 9 is also at offset 0ms, etc.
+    for j, p in enumerate(pulsers):
+        p.phase = 8192 * (j % 8)
+
     servos = [servo.Servo(p) for p in pulsers]
 
     sine = np.sin(np.linspace(0, 2 * np.pi, 50, endpoint=False)) * 0.5 + 0.5
     print(sine)
 
-    signals = [CyclicSignal(sine, i / len(servos)) for i in range(len(servos))]
+    signals = [CyclicSignal(sine, j / len(servos)) for j in range(len(servos))]
 
     t0 = adafruit_ticks.ticks_ms()
     while True:
