@@ -29,7 +29,9 @@ class AssembleChecks(unittest.TestCase):
             f"Assembling {source!r}: Expected {expected_bin}, got {actual_bin}",
         )
 
-    def assertAssemblyFails(self, source, match=None, errtype=RuntimeError):
+    def assertAssemblyFails(
+        self, source, match=None, errtype=adafruit_pioasm.ParseError
+    ):
         if match:
             self.assertRaisesRegex(errtype, match, adafruit_pioasm.assemble, source)
         else:
@@ -71,9 +73,7 @@ class TestNop(AssembleChecks):
 
     def testSet(self):
         # non happy path
-        self.assertAssemblyFails(
-            "set isr, 1", match="Invalid set destination 'isr'", errtype=ValueError
-        )
+        self.assertAssemblyFails("set isr, 1", match="Invalid set destination")
 
     def testJmp(self):
         self.assertAssemblesTo("l:\njmp l", [0b000_00000_000_00000])
@@ -87,9 +87,7 @@ class TestNop(AssembleChecks):
         self.assertAssemblesTo("jmp pin, l\nl:", [0b000_00000_110_00001])
         self.assertAssemblesTo("jmp !osre, l\nl:", [0b000_00000_111_00001])
         # non happy path
-        self.assertAssemblyFails(
-            "jmp x--., l\nl:", match="Invalid jmp condition 'x--.'", errtype=ValueError
-        )
+        self.assertAssemblyFails("jmp x--., l\nl:")
 
     def testWait(self):
         self.assertAssemblesTo("wait 0 gpio 0", [0b001_00000_0_00_00000])
@@ -121,9 +119,7 @@ class TestNop(AssembleChecks):
 class TestMov(AssembleChecks):
     def testMovNonHappy(self):
         # non happy path
-        self.assertAssemblyFails(
-            "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
-        )
+        self.assertAssemblyFails("mov x, blah", match="Invalid mov source")
 
     def testMovInvert(self):
         # test moving and inverting

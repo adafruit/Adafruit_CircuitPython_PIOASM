@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (c) 2021 Scott Shawcroft for Adafruit Industries LLC
+# SPDX-FileCopyrightText: Copyright (c) 2022 Jeff Epler for Adafruit Industries LLC
 #
 # SPDX-License-Identifier: MIT
 """
@@ -8,29 +9,172 @@
 Simple assembler to convert pioasm to bytes
 
 
-* Author(s): Scott Shawcroft
+* Author(s): Scott Shawcroft, Jeff Epler
 """
-
 import array
-import re
+import collections
 
-splitter = re.compile(r",\s*|\s+(?:,\s*)?").split
-mov_splitter = re.compile("!|~|::").split
+try:
+    import re
+except ImportError:
+    import ure as re
 
-__version__ = "0.0.0-auto.0"
-__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PIOASM.git"
+re_type = type(re.compile(""))
 
-CONDITIONS = ["", "!x", "x--", "!y", "y--", "x!=y", "pin", "!osre"]
-IN_SOURCES = ["pins", "x", "y", "null", None, None, "isr", "osr"]
-OUT_DESTINATIONS = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
-WAIT_SOURCES = ["gpio", "pin", "irq", None]
-MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
-MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
-MOV_OPS = [None, "~", "::", None]
-SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
+MatchResult = collections.namedtuple("MatchResult", ["needle", "match"])
+
+if hasattr(re, "DOTALL"):
+    star_dotall = (re.DOTALL,)
+else:
+    star_dotall = ()
 
 
-class Program:  # pylint: disable=too-few-public-methods
+class NamedRE:
+    """A Regular Expression that has a useful repr()"""
+
+    def __init__(self, name, pattern):
+        self._name = name
+        self.match = re.compile(pattern).match
+
+    def __str__(self):
+        """Return the RE's name"""
+        return self._name
+
+    def __repr__(self):
+        """Return the RE's repr"""
+        return f"<{self._name}>"
+
+
+# Indices must match instruction values! Trailing reserved values may be omitted,
+# internal reserved values must be None
+SetDestinations = ["pins", "x", "y", None, "pindirs"]
+WaitSources = ["gpio", "pin", "irq"]
+InSources = ["pins", "x", "y", "null", None, None, "isr", "osr"]
+OutDestinations = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
+MovDestinations = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
+MovSources = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
+JmpConditions = [None, "!x", "x--", "!y", "y--", "x!=y", "pin", "!osre"]
+
+wait_source_max = {"gpio": 32, "pin": 32, "irq": 8}
+
+Number = NamedRE("Number", r"[1-9][0-9]*|0o?[0-7]+|0x[0-9a-fA-F]+|0b[01]+|0")
+Identifier = NamedRE("Identifier", r"[A-Za-z_][A-Za-z_0-9]*")
+Label = NamedRE("Label", r"[A-Za-z_][A-Za-z_0-9]*:")
+Pseudo = NamedRE("Pseudo-Op", r"\.[A-Za-z_][A-Za-z_0-9]*")
+ws = NamedRE("Whitespace", r"[ \t]+")
+ws_comma = NamedRE("Optional comma and whitespace", r"[ \t]*,[ \t]*|[ \t]+")
+comment_nl = NamedRE("Comment", r";[^\n]*\n")
+comment = NamedRE("Comment", r";[^\n]*")
+Instruction = NamedRE("Instruction", r"nop|jmp|wait|in|out|push|pull|mov|irq|set")
+
+
+def _to_int(val):
+    val = _match_value(val)
+    if len(val) > 1 and val[0] == "0" and val[1] in "01234567":
+        return int(val, 8)
+    return int(val, 0)
+
+
+def _match_value(obj):
+    """Get the value of a parsed object (which can be a str or a match-like object)"""
+    if obj is None:
+        return None
+    match = obj.match
+    if isinstance(match, str):
+        return match
+    return match.group(0)
+
+
+def match_len(obj):
+    """Get the length of a parsed object (which can be a str or a match-like object)"""
+    match = obj.match
+    if isinstance(match, str):
+        return len(match)
+    return match.end() - match.start()
+
+
+class ParseError(SyntaxError):
+    """This error is raised when pio source cannot be parsed"""
+
+
+class _Parser:  # pylint: disable=too-few-public-methods
+    """Base class for recursive-descent parsing"""
+
+    def __init__(self, data) -> None:
+        if not data.endswith("\n"):
+            data += "\n"
+        self._data = data
+        self._pos = 0
+        self._parse()  # pylint: disable=no-member
+        if not self._eof():
+            self._parse_error("Not all data parsed")
+
+    def _match_next(self, needle):
+        """Check whether needle matches next"""
+        if needle is None:
+            return None
+        if isinstance(needle, str):
+            if self._data.startswith(needle, self._pos):
+                return MatchResult(needle, needle)
+        else:
+            match = needle.match(self._data, self._pos)
+            if match is not None:
+                return MatchResult(needle, match)
+        return None
+
+    def _one_of_next(self, *args, ignore=None):
+        """Check whether one of the options appears next. Never advances the parse position"""
+        pos = self._pos
+        try:
+            return self._one_of(*args, ignore=ignore)
+        finally:
+            self._pos = pos
+
+    def _one_of(self, *args, ignore=None):
+        if ignore:
+            while self._one_of(ignore):
+                pass
+
+        for needle in args:
+            if result := self._match_next(needle):
+                self._pos += match_len(result)
+                return result
+
+        return None
+
+    def _ignore_one_of(self, *args):
+        while self._one_of(*args):
+            pass
+
+    def _parse_error(self, info, pos=None):
+        if pos is None:
+            pos = self._pos
+        lineno = 1 + self._data.count("\n", 0, pos)
+        try:
+            start_of_line = self._data.rindex("\n", 0, pos) + 1
+        except ValueError:
+            start_of_line = 0
+        try:
+            end_of_line = self._data.index("\n", pos)
+        except ValueError:
+            end_of_line = len(self._data)
+        column = 1 + pos - start_of_line
+        line = self._data[start_of_line:end_of_line]
+        raise ParseError(
+            f"Line {lineno}, column {column}: {info}\n    {line.rstrip()}\n    {'^':>{column}}\n"
+        )
+
+    def _parse_one_of(self, *args, ignore=None, msg=None):
+        if result := self._one_of(*args, ignore=ignore):
+            return result
+
+        return self._parse_error(msg or f"Expected {', '.join(repr(a) for a in args)}")
+
+    def _eof(self):
+        return self._pos == len(self._data)
+
+
+class Program(_Parser):
     """Encapsulates a program's instruction stream and configuration flags
 
     Example::
@@ -40,207 +184,240 @@ class Program:  # pylint: disable=too-few-public-methods
 
     """
 
-    def __init__(self, text_program: str, *, build_debuginfo=False) -> None:
-        """Converts pioasm text to encoded instruction bytes"""
-        # pylint: disable=too-many-branches,too-many-statements,too-many-locals
-        assembled = []
-        program_name = None
-        labels = {}
-        linemap = []
-        instructions = []
-        sideset_count = 0
-        sideset_enable = 0
-        wrap = None
-        wrap_target = None
-        for i, line in enumerate(text_program.split("\n")):
-            line = line.strip()
-            if not line:
-                continue
-            if ";" in line:
-                line = line.split(";")[0].strip()
-            if line.startswith(".program"):
-                if program_name:
-                    raise RuntimeError("Multiple programs not supported")
-                program_name = line.split()[1]
-            elif line.startswith(".wrap_target"):
-                wrap_target = len(instructions)
-            elif line.startswith(".wrap"):
-                if len(instructions) == 0:
-                    raise RuntimeError("Cannot have .wrap as first instruction")
-                wrap = len(instructions) - 1
-            elif line.startswith(".side_set"):
-                sideset_count = int(line.split()[1], 0)
-                sideset_enable = "opt" in line
-            elif line.endswith(":"):
-                label = line[:-1]
-                if label in labels:
-                    raise SyntaxError(f"Duplicate label {repr(label)}")
-                labels[label] = len(instructions)
-            elif line:
-                # Only add as an instruction if the line isn't empty
-                instructions.append(line)
-                linemap.append(i)
-
-        max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
-        assembled = []
-        for instruction in instructions:
-            # print(instruction)
-            instruction = splitter(instruction.strip())
-            delay = 0
-            if instruction[-1].endswith("]"):  # Delay
-                delay = int(instruction[-1].strip("[]"), 0)
-                if delay < 0:
-                    raise RuntimeError("Delay negative:", delay)
-                if delay > max_delay:
-                    raise RuntimeError("Delay too long:", delay)
-                instruction.pop()
-            if len(instruction) > 1 and instruction[-2] == "side":
-                if sideset_count == 0:
-                    raise RuntimeError("No side_set count set")
-                sideset_value = int(instruction[-1], 0)
-                if sideset_value >= 2**sideset_count:
-                    raise RuntimeError("Sideset value too large")
-                delay |= sideset_value << (5 - sideset_count - sideset_enable)
-                delay |= sideset_enable << 4
-                instruction.pop()
-                instruction.pop()
-
-            if instruction[0] == "nop":
-                #                  mov delay   y op   y
-                assembled.append(0b101_00000_010_00_010)
-            elif instruction[0] == "jmp":
-                #                instr delay cnd addr
-                assembled.append(0b000_00000_000_00000)
-                target = instruction[-1]
-                if target[:1] in "0123456789":
-                    assembled[-1] |= int(target, 0)
-                elif instruction[-1] in labels:
-                    assembled[-1] |= labels[target]
-                else:
-                    raise SyntaxError(f"Invalid jmp target {repr(target)}")
-
-                if len(instruction) > 2:
-                    try:
-                        assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
-                    except ValueError as exc:
-                        raise ValueError(
-                            f"Invalid jmp condition '{instruction[1]}'"
-                        ) from exc
-
-            elif instruction[0] == "wait":
-                #                instr delay p sr index
-                assembled.append(0b001_00000_0_00_00000)
-                polarity = int(instruction[1], 0)
-                if not 0 <= polarity <= 1:
-                    raise RuntimeError("Invalid polarity")
-                assembled[-1] |= polarity << 7
-                assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
-                num = int(instruction[3], 0)
-                if not 0 <= num <= 31:
-                    raise RuntimeError("Wait num out of range")
-                assembled[-1] |= num
-                if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
-            elif instruction[0] == "in":
-                #                instr delay src count
-                assembled.append(0b010_00000_000_00000)
-                assembled[-1] |= IN_SOURCES.index(instruction[1]) << 5
-                count = int(instruction[-1], 0)
-                if not 1 <= count <= 32:
-                    raise RuntimeError("Count out of range")
-                assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
-            elif instruction[0] == "out":
-                #                instr delay dst count
-                assembled.append(0b011_00000_000_00000)
-                assembled[-1] |= OUT_DESTINATIONS.index(instruction[1]) << 5
-                count = int(instruction[-1], 0)
-                if not 1 <= count <= 32:
-                    raise RuntimeError("Count out of range")
-                assembled[-1] |= count & 0x1F  # 32 is 00000 so we mask the top
-            elif instruction[0] == "push" or instruction[0] == "pull":
-                #                instr delay d i b zero
-                assembled.append(0b100_00000_0_0_0_00000)
-                if instruction[0] == "pull":
-                    assembled[-1] |= 0x80
-                if instruction[-1] == "block" or not instruction[-1].endswith("block"):
-                    assembled[-1] |= 0x20
-                if len(instruction) > 1 and instruction[1] in ("ifempty", "iffull"):
-                    assembled[-1] |= 0x40
-            elif instruction[0] == "mov":
-                #                instr delay dst op src
-                assembled.append(0b101_00000_000_00_000)
-                assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
-                source = instruction[-1]
-                source_split = mov_splitter(source)
-                if len(source_split) == 1:
-                    try:
-                        assembled[-1] |= MOV_SOURCES.index(source)
-                    except ValueError as exc:
-                        raise ValueError(f"Invalid mov source '{source}'") from exc
-                else:
-                    assembled[-1] |= MOV_SOURCES.index(source_split[1])
-                    if source[:1] == "!":
-                        assembled[-1] |= 0x08
-                    elif source[:1] == "~":
-                        assembled[-1] |= 0x08
-                    elif source[:2] == "::":
-                        assembled[-1] |= 0x10
-                    else:
-                        raise RuntimeError("Invalid mov operator:", source[:1])
-                if len(instruction) > 3:
-                    assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
-            elif instruction[0] == "irq":
-                #                instr delay z c w index
-                assembled.append(0b110_00000_0_0_0_00000)
-                if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
-                    instruction.pop()
-                num = int(instruction[-1], 0)
-                if not 0 <= num <= 7:
-                    raise RuntimeError("Interrupt index out of range")
-                assembled[-1] |= num
-                if len(instruction) == 3:  # after rel has been removed
-                    if instruction[1] == "wait":
-                        assembled[-1] |= 0x20
-                    elif instruction[1] == "clear":
-                        assembled[-1] |= 0x40
-                    # All other values are the default of set without waiting
-            elif instruction[0] == "set":
-                #                instr delay dst data
-                assembled.append(0b111_00000_000_00000)
-                try:
-                    assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
-                except ValueError as exc:
-                    raise ValueError(
-                        f"Invalid set destination '{instruction[1]}'"
-                    ) from exc
-                value = int(instruction[-1], 0)
-                if not 0 <= value <= 31:
-                    raise RuntimeError("Set value out of range")
-                assembled[-1] |= value
-            else:
-                raise RuntimeError("Unknown instruction:" + instruction[0])
-            assembled[-1] |= delay << 8
-            # print(bin(assembled[-1]))
-
-        self.pio_kwargs = {
-            "sideset_enable": sideset_enable,
-        }
-
-        if sideset_count != 0:
-            self.pio_kwargs["sideset_pin_count"] = sideset_count
-
-        if wrap is not None:
-            self.pio_kwargs["wrap"] = wrap
-        if wrap_target is not None:
-            self.pio_kwargs["wrap_target"] = wrap_target
-
-        self.assembled = array.array("H", assembled)
-
+    def __init__(self, data, build_debuginfo=False):
         if build_debuginfo:
-            self.debuginfo = (linemap, text_program)
+            raise NotImplementedError("Debug info not implemented")
+        self.debuginfo = None if build_debuginfo else []
+        self.assembled = array.array("H")
+        self.fixups = {}
+        self.labels = {}
+        self.side_set_count = 0
+        self.side_set_opt = None
+        self.program_name = None
+        self.pio_kwargs = {}
+        super().__init__(data)
+        for target, (label, pos) in self.fixups.items():
+            offset = self.labels.get(label, None)
+            if offset is None:
+                self._parse_error(f"Jump to undefined label {label}", pos=pos)
+            self.assembled[target] |= offset
+        if self.side_set_count != 0:
+            self.pio_kwargs["sideset_pin_count"] = self.side_set_count
+        self.pio_kwargs["sideset_enable"] = bool(self.side_set_opt)
+        if (wrap_target := self.labels.get(".wrap_target")) is not None:
+            self.pio_kwargs["wrap_target"] = wrap_target
+        if (wrap := self.labels.get(".wrap")) is not None:
+            self.pio_kwargs["wrap"] = wrap
+
+    def _parse(self):
+        while self._one_of(ws, "\n", comment_nl):
+            pass
+        while not self._eof():
+            self._parse_instruction()
+            while self._one_of(ws, "\n", comment_nl):
+                pass
+
+    def _parse_instruction(self):
+        oper = self._parse_one_of(Pseudo, Label, Instruction, ignore=ws)
+        while not self._eof() and self._one_of("\n", comment_nl, ignore=ws):
+            pass
+
+        val = _match_value(oper)
+        if oper[0] is Instruction:
+            instr = getattr(self, "_instruction_" + val, self._unknown_instruction)(
+                oper
+            )
+            instr |= self._parse_delay_side_set()
+            self.assembled.append(instr)
+        elif oper[0] is Pseudo:
+            getattr(self, "_pseudo_" + val[1:], self._unknown_pseudo)(oper)
+        elif oper[0] is Label:
+            self._define_label(val[:-1])
+
+    def _parse_delay_side_set(self):
+        side = None
+        max_side = 2**self.side_set_count
+        delay_bits = 5 - self.side_set_count - (self.side_set_opt or 0)
+        max_delay = 2**delay_bits
+        dss = 0
+        if self._one_of("side", ignore=ws_comma):
+            side = self._parse_expression("Side-set value", 0, max_side)
+        if self._one_of("[", ignore=ws_comma):
+            dss = self._parse_expression("Side-set value", 0, max_delay)
+            self._parse_one_of("]", ignore=ws)
+        if side is not None:
+            dss |= side << (delay_bits)
+            if self.side_set_opt:
+                dss |= 0x10
+        return dss << 8
+
+    def _unknown_instruction(self, oper):
+        self._parse_error(f"Unhandled instruction {_match_value(oper)}")
+
+    def _unknown_pseudo(self, oper):
+        self._parse_error(f"Unhandled pseudo-instruction {_match_value(oper)}")
+
+    def _define_label(self, name, value=None):
+        if name in self.labels:
+            self._parse_error(f"Duplicate label {name}")
+        if value is None:
+            value = len(self.assembled)
+        self.labels[name] = value
+
+    def _parse_expression(self, what=None, min_=None, max_=None):
+        self._ignore_one_of(ws)
+        startpos = self._pos
+        val = self._parse_one_of(Number)
+        result = _to_int(val)
+        if min_ is not None:
+            if result < min_:
+                self._parse_error(
+                    f"{what or 'Value'} {result} must be >= {min_}", startpos
+                )
+        if max_ is not None:
+            if result >= max_:
+                self._parse_error(
+                    f"{what or 'Value'} {result} must be < {max_}", startpos
+                )
+        return result
+
+    def _pseudo_program(self, _):
+        if self.program_name is not None:
+            self._parse_error("Multiple programs not supported")
+        self.program_name = self._parse_one_of(Identifier)
+
+    def _pseudo_wrap(self, _):
+        if len(self.assembled) == 0:
+            self._parse_error("Cannot have .wrap as first instruction")
+        self._define_label(".wrap", len(self.assembled) - 1)
+
+    def _pseudo_wrap_target(self, _):
+        self._define_label(".wrap_target")
+
+    def _pseudo_side_set(self, _):
+        if self.side_set_opt is not None:
+            self._parse_error("Multiple .side_set not permitted")
+        self.side_set_count = self._parse_expression("Number of side set pins", 0, 6)
+        self.side_set_opt = bool(self._one_of("opt", ignore=ws))
+
+    def _instruction_nop(self, _):  # pylint: disable=no-self-use
+        #                          mov delay   y oper   y
+        return 0b101_00000_010_00_010
+
+    def _instruction_pull(self, _):
+        #        instr delay d i b zero
+        instr = 0b100_00000_1_0_0_00000
+        if self._one_of("block", ignore=ws):
+            self._one_of(ignore=ws_comma)
+            instr |= 0x20
+        if self._one_of("ifempty", ignore=ws):
+            instr |= 0x40
+        return instr
+
+    def _instruction_push(self, _):
+        #        instr delay d i b zero
+        instr = 0b100_00000_0_0_0_00000
+        if self._one_of("block", ignore=ws):
+            self._one_of(ignore=ws_comma)
+            instr |= 0x20
+        if self._one_of("iffull", ignore=ws):
+            instr |= 0x40
+        return instr
+
+    def _instruction_jmp(self, _):
+        instr = 0b000_00000_000_00000
+        condition = _match_value(self._one_of(*JmpConditions, ignore=ws))
+        if condition is not None:
+            instr |= JmpConditions.index(condition) << 5
+            self._ignore_one_of(ws_comma)
+        if self._one_of_next(Number):
+            target = self._parse_expression("jmp target", 0, 32)
+            instr |= target
         else:
-            self.debuginfo = None
+            pos = self._pos
+            target = self._parse_one_of(Identifier, ignore=ws)
+            self.fixups[len(self.assembled)] = _match_value(target), pos
+        return instr
+
+    def _instruction_set(self, _):
+        #       instr delay dst data
+        instr = 0b111_00000_000_00000
+        dest = self._parse_one_of(
+            *SetDestinations, ignore=ws, msg="Invalid set destination"
+        )
+        instr |= SetDestinations.index(_match_value(dest)) << 5
+        self._ignore_one_of(ws_comma)
+        val = self._parse_expression("Set value", 0, 32)
+        instr |= val
+        return instr
+
+    def _instruction_wait(self, _):
+        #       instr delay p sr index
+        instr = 0b001_00000_0_00_00000
+        polarity = self._parse_expression("Polarity", 0, 2)
+        source = _match_value(self._parse_one_of(*WaitSources, ignore=ws_comma))
+        self._ignore_one_of(ws_comma)
+        index = self._parse_expression(f"{source} number", 0, wait_source_max[source])
+        if source == "irq":
+            if self._one_of("rel", ignore=ws):
+                index |= 0x10
+        instr |= polarity << 7
+        instr |= WaitSources.index(source) << 5
+        instr |= index
+
+        return instr
+
+    def _instruction_in(self, _):
+        #       instr delay src count
+        instr = 0b010_00000_000_00000
+        source = _match_value(self._parse_one_of(*InSources, ignore=ws))
+        count = self._parse_expression("In count", 1, 33)
+        instr |= InSources.index(source) << 5
+        instr |= count & 0x1F  # encode 32 as 0
+
+    def _instruction_out(self, _):
+        #       instr delay src count
+        instr = 0b011_00000_000_00000
+        dest = _match_value(self._parse_one_of(*OutDestinations, ignore=ws))
+        count = self._parse_expression("Out count", 1, 33)
+        instr |= OutDestinations.index(dest) << 5
+        instr |= count & 0x1F  # encode 32 as 0
+        return instr
+
+    def _instruction_mov(self, _):
+        #       instr delay dst oper src
+        instr = 0b101_00000_000_00_000
+        dest = _match_value(self._parse_one_of(*MovDestinations, ignore=ws))
+        instr |= MovDestinations.index(dest) << 5
+        self._ignore_one_of(ws_comma)
+        opt = _match_value(self._one_of("~", "!", "::"))
+        src = self._parse_one_of(*MovSources, ignore=ws, msg="Invalid mov source")
+        if opt in "~!":
+            instr |= 0b01 << 3
+        elif opt == "::":
+            instr |= 0b10 << 3
+        instr |= MovSources.index(_match_value(src))
+        return instr
+
+    def _instruction_irq(self, _):
+        #       instr delay 0 c w index
+        instr = 0b110_00000_0_0_0_00000
+
+        modifier = _match_value(self._one_of("set", "nowait", "wait", "clear"))
+        # "set" and "nowait" modifiers are the same as the default, c=w=0
+        # c=w=1 is reserved/invalid
+        if modifier == "wait":
+            instr |= 0x20
+        if modifier == "clear":
+            instr |= 0x40
+
+        index = self._parse_expression("IRQ number", 0, 8)
+        instr |= index
+
+        if self._one_of("rel"):
+            instr |= 0x10
+
+        return instr
 
     def print_c_program(self, name, qualifier="const"):
         """Print the program into a C program snippet"""
