@@ -13,6 +13,7 @@ Simple assembler to convert pioasm to bytes
 """
 import array
 import collections
+import sys
 
 try:
     import re
@@ -146,18 +147,33 @@ class _Parser:  # pylint: disable=too-few-public-methods
         while self._one_of(*args):
             pass
 
+    def _lineno(self, pos=None):
+        if pos is None:
+            pos = self._pos
+        return self._data.count("\n", 0, pos)
+
+    def _start_of_line(self, pos=None):
+        if pos is None:
+            pos = self._pos
+        try:
+            return self._data.rindex("\n", 0, pos) + 1
+        except ValueError:
+            return 0
+
+    def _end_of_line(self, pos=None):
+        if pos is None:
+            pos = self._pos
+        try:
+            return self._data.index("\n", pos)
+        except ValueError:
+            return len(self._data)
+
     def _parse_error(self, info, pos=None):
         if pos is None:
             pos = self._pos
-        lineno = 1 + self._data.count("\n", 0, pos)
-        try:
-            start_of_line = self._data.rindex("\n", 0, pos) + 1
-        except ValueError:
-            start_of_line = 0
-        try:
-            end_of_line = self._data.index("\n", pos)
-        except ValueError:
-            end_of_line = len(self._data)
+        lineno = self._lineno(pos)
+        start_of_line = self._start_of_line(pos)
+        end_of_line = self._end_of_line(pos)
         column = 1 + pos - start_of_line
         line = self._data[start_of_line:end_of_line]
         raise ParseError(
@@ -185,9 +201,7 @@ class Program(_Parser):
     """
 
     def __init__(self, data, build_debuginfo=False):
-        if build_debuginfo:
-            raise NotImplementedError("Debug info not implemented")
-        self.debuginfo = None if build_debuginfo else []
+        self.linemap = []
         self.assembled = array.array("H")
         self.fixups = {}
         self.labels = {}
@@ -208,19 +222,24 @@ class Program(_Parser):
             self.pio_kwargs["wrap_target"] = wrap_target
         if (wrap := self.labels.get(".wrap")) is not None:
             self.pio_kwargs["wrap"] = wrap
+        if build_debuginfo:
+            self.debuginfo = (self.linemap, data)
+        else:
+            self.debuginfo = None
+        del self.linemap
 
     def _parse(self):
-        while self._one_of(ws, "\n", comment_nl):
-            pass
         while not self._eof():
+            while self._one_of("\n", comment_nl, ignore=ws):
+                self.linemap.append(len(self.assembled))
+            if self._eof():
+                break
             self._parse_instruction()
-            while self._one_of(ws, "\n", comment_nl):
-                pass
+            self.linemap.append(len(self.assembled))
+            self._parse_one_of("\n", ignore=comment)
 
     def _parse_instruction(self):
         oper = self._parse_one_of(Pseudo, Label, Instruction, ignore=ws)
-        while not self._eof() and self._one_of("\n", comment_nl, ignore=ws):
-            pass
 
         val = _match_value(oper)
         if oper[0] is Instruction:
@@ -284,7 +303,7 @@ class Program(_Parser):
     def _pseudo_program(self, _):
         if self.program_name is not None:
             self._parse_error("Multiple programs not supported")
-        self.program_name = self._parse_one_of(Identifier)
+        self.program_name = self._parse_one_of(Identifier, ignore=ws)
 
     def _pseudo_wrap(self, _):
         if len(self.assembled) == 0:
@@ -419,52 +438,48 @@ class Program(_Parser):
 
         return instr
 
-    def print_c_program(self, name, qualifier="const"):
+    def print_c_program(self, name, qualifier="const", file=None):
         """Print the program into a C program snippet"""
-        if self.debuginfo is None:
-            linemap = None
-            program_lines = None
-        else:
-            linemap = self.debuginfo[0][:]  # Use a copy since we destroy it
-            program_lines = self.debuginfo[1].split("\n")
+        if file is None:
+            file = sys.stdout
 
         print(
-            f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};"
+            f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};",
+            file=file,
         )
         print(
-            f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};"
+            f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};",
+            file=file,
         )
         sideset_pin_count = self.pio_kwargs.get("sideset_pin_count", 0)
-        print(f"{qualifier} int {name}_sideset_pin_count = {sideset_pin_count};")
         print(
-            f"{qualifier} bool {name}_sideset_enable = {self.pio_kwargs['sideset_enable']};"
+            f"{qualifier} int {name}_sideset_pin_count = {sideset_pin_count};",
+            file=file,
         )
-        print(f"{qualifier} uint16_t {name}[] = " + "{")
-        last_line = 0
-        if linemap:
-            for inst in self.assembled:
-                next_line = linemap[0]
-                del linemap[0]
-                while last_line < next_line:
-                    line = program_lines[last_line]
+        print(
+            f"{qualifier} bool {name}_sideset_enable = {self.pio_kwargs['sideset_enable']};",
+            file=file,
+        )
+        print(f"{qualifier} uint16_t {name}[] = " + "{", file=file)
+        if self.debuginfo:
+            linemap = iter(self.debuginfo[0])
+            program_lines = iter(self.debuginfo[1].split("\n"))
+            for i, inst in enumerate(self.assembled):
+                while next(linemap) <= i:
+                    line = next(program_lines)
                     if line:
-                        print(f"            // {line}")
-                    last_line += 1
-                line = program_lines[last_line]
-                print(f"    0x{inst:04x}, // {line}")
-                last_line += 1
-            while last_line < len(program_lines):
-                line = program_lines[last_line]
-                if line:
-                    print(f"            // {line}")
-                last_line += 1
+                        print(f"            // {line}", file=file)
+                print(f"    0x{inst:04x}, // {next(program_lines)}", file=file)
+            for line in program_lines:
+                print(f"            // {line}", file=file)
         else:
             for i in range(0, len(self.assembled), 8):
                 print(
-                    "    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8])
+                    "    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8]),
+                    file=file,
                 )
-        print("};")
-        print()
+        print("};", file=file)
+        print(file=file)
 
 
 def assemble(program_text: str) -> array.array:
