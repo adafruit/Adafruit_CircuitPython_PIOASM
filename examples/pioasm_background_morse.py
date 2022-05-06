@@ -17,8 +17,8 @@ based on the 'DIT duration' of about 128ms (1MHz / 32 / 4000).
 https://en.wikipedia.org/wiki/Morse_code
 """
 
-import time
 import array
+import time
 from board import LED
 from rp2pio import StateMachine
 from adafruit_pioasm import Program
@@ -62,13 +62,6 @@ T = DIT + LETTER_SPACE
 SOS = S + O + S + WORD_SPACE
 TEST = T + E + S + T + WORD_SPACE
 
-# 8 slots of the shortest possible led-off time
-# A background write is 'complete' as soon as all data has been placed
-# in the StateMachine's FIFO.  This FIFO has either 4 or 8 entries.
-# By adding 8 very short "led off" times, we can have our 'sm.writing' test
-# tell us when the actual letter data has all been
-FILLER = array.array("H", [LED_OFF | 1]) * 8
-
 sm = StateMachine(
     pio_code.assembled,
     frequency=1_000_000,
@@ -94,11 +87,11 @@ while True:
         ("TEST", TEST),
     ):
         print(f"Sending out {plain}", end="")
-        sm.background_write(morse + FILLER)
-        while sm.writing:
+        sm.background_write(morse)
+        sm.clear_txstall()
+        while not sm.txstall:
             print(end=".")
             time.sleep(0.1)
         print()
-        print("Message all sent to StateMachine")
-        time.sleep(1)
+        print("Message all sent to StateMachine (including emptying FIFO)")
         print()

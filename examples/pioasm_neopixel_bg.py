@@ -12,6 +12,10 @@ Writing the LED data in the background will allow more time for your
 Python code to run, so it may be possible to slightly increase the refresh
 rate of your LEDs or do more complicated processing.
 
+Because the pixelbuf storage is also being written out 'live', it is possible
+(even with auto-show 'false') to experience tearing, where the LEDs are a
+combination of old and new values at the same time.
+
 The demonstration code, under ``if __name__ == '__main__':`` is intended
 for the Adafruit MacroPad, with 12 NeoPixel LEDs. It shows a cycling rainbow
 pattern across all the LEDs.
@@ -19,7 +23,6 @@ pattern across all the LEDs.
 
 import struct
 import adafruit_pixelbuf
-from ulab import numpy as np
 from rp2pio import StateMachine
 from adafruit_pioasm import Program
 
@@ -95,28 +98,51 @@ class NeoPixelBackground(  # pylint: disable=too-few-public-methods
             **_program.pio_kwargs,
         )
 
+        self._first = True
         super().__init__(
             n,
             brightness=brightness,
             byteorder=pixel_order,
-            auto_write=auto_write,
+            auto_write=False,
             header=header,
             trailer=trailer,
         )
 
+        self._auto_write = False
+        self._auto_writing = False
+        self.auto_write = auto_write
+
+    @property
+    def auto_write(self):
+        return self._auto_write
+
+    @auto_write.setter
+    def auto_write(self, value):
+        self._auto_write = bool(value)
+        if not value and self._auto_writing:
+            self._sm.background_write()
+            self._auto_writing = False
+        elif value:
+            self.show()
+
     def _transmit(self, buf):
-        self._sm.background_write(np.frombuffer(buf, dtype=np.uint16).byteswap())
+        if self._auto_write:
+            if not self._auto_writing:
+                self._sm.background_write(loop=memoryview(buf).cast("H"), swap=True)
+                self._auto_writing = True
+        else:
+            self._sm.background_write(memoryview(buf).cast("H"), swap=True)
 
 
 if __name__ == "__main__":
     import board
     import rainbowio
-    import time
+    import supervisor
 
     NEOPIXEL = board.NEOPIXEL
     NUM_PIXELS = 12
     pixels = NeoPixelBackground(NEOPIXEL, NUM_PIXELS)
     i = 0
     while True:
-        pixels.fill(rainbowio.colorwheel(i := (i + 1) % 256))
-        time.sleep(0.01)
+        # Around 1 cycle per second
+        pixels.fill(rainbowio.colorwheel(supervisor.ticks_ms() // 4))
