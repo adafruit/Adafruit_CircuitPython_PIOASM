@@ -33,11 +33,8 @@ RGBW = "RGBW"
 GRBW = "GRBW"
 """Green Red Blue White"""
 
-# NeoPixels are 800khz bit streams. We are choosing zeros as <312ns hi, 936 lo> and ones
+# NeoPixels are 800khz bit streams. We are choosing zeros as <312ns hi, 936 lo>
 # and ones as <700 ns hi, 556 ns lo>.
-# cycle. The first two instructions always run while only one of the two final
-# instructions run per bit. We start with the low period because it can be
-# longer while waiting for more data.
 _program = Program(
     """
 .side_set 1 opt
