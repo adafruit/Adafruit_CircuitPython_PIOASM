@@ -6,7 +6,8 @@
 
 The NeoPixelBackground class defined here is largely compatible with the
 standard NeoPixel class, except that the ``show()`` method returns immediately,
-writing data to the LEDs in the background.
+writing data to the LEDs in the background, and setting `auto_write` to true
+causes the data to be continuously sent to the LEDs all the time.
 
 Writing the LED data in the background will allow more time for your
 Python code to run, so it may be possible to slightly increase the refresh
@@ -43,7 +44,7 @@ _program = Program(
 .side_set 1 opt
 .wrap_target
     pull block          side 0
-    out y, 16           side 0      ; get count of NeoPixel bits
+    out y, 32           side 0      ; get count of NeoPixel bits
 
 bitloop:
     pull ifempty        side 0      ; drive low
@@ -56,8 +57,8 @@ do_zero:
     jmp y--, bitloop    side 0 [4]  ; drive low for a zero (short pulse)
 
 end_sequence:
-    pull block          side 0      ; get fresh 16 bit delay value
-    out y, 16           side 0      ; get delay count
+    pull block          side 0      ; get fresh delay value
+    out y, 32           side 0      ; get delay count
 wait_reset:
     jmp y--, wait_reset side 0      ; wait until delay elapses
 .wrap
@@ -79,21 +80,18 @@ class NeoPixelBackground(  # pylint: disable=too-few-public-methods
 
         byte_count = bpp * n
         bit_count = byte_count * 8
-        padding_count = byte_count % 2
+        padding_count = -byte_count % 4
 
-        if bit_count > 65536:
-            raise ValueError("Too many pixels")
-
-        # backwards, so that ulab byteswap corrects it!
-        header = struct.pack(">H", (bit_count - 1) & 0xFFFF)
-        trailer = b"\0" * padding_count + struct.pack(">H", 3840)
+        # backwards, so that dma byteswap corrects it!
+        header = struct.pack(">L", bit_count - 1)
+        trailer = b"\0" * padding_count + struct.pack(">L", 3840)
 
         self._sm = StateMachine(
             _program.assembled,
             auto_pull=False,
             first_sideset_pin=pin,
             out_shift_right=False,
-            pull_threshold=16,
+            pull_threshold=32,
             frequency=12_800_000,
             **_program.pio_kwargs,
         )
@@ -128,10 +126,10 @@ class NeoPixelBackground(  # pylint: disable=too-few-public-methods
     def _transmit(self, buf):
         if self._auto_write:
             if not self._auto_writing:
-                self._sm.background_write(loop=memoryview(buf).cast("H"), swap=True)
+                self._sm.background_write(loop=memoryview(buf).cast("L"), swap=True)
                 self._auto_writing = True
         else:
-            self._sm.background_write(memoryview(buf).cast("H"), swap=True)
+            self._sm.background_write(memoryview(buf).cast("L"), swap=True)
 
 
 if __name__ == "__main__":
