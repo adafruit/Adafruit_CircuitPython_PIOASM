@@ -6,9 +6,7 @@
 
 By updating the buffer being written to the display, the shown digits can be changed.
 
-The main program repeatedly shows random digits which 'lock' after a short
-time. After all digits have locked, it blanks for a short time and then repeats.
-It also demonstrates the use of `asyncio` to perform multiple tasks.
+The main program just counts up, looping back to 0000 after 9999.
 
 This example is designed for a Raspberry Pi Pico and bare LED display. For
 simplicity, it is wired without any current limiting resistors, instead relying
@@ -39,9 +37,8 @@ Wiring:
  * Pico GP16 to LED matrix 14 (COM1)
 """
 
-import asyncio
-import random
 import array
+import time
 import board
 import rp2pio
 import adafruit_pioasm
@@ -141,38 +138,25 @@ class SMSevenSegment:
         else:
             self._buf[i] = DIGITS_WT[v] & ~COM_WT[i]
 
-
-async def digit_locker(s, i, wait):
-    delay = 30
-    d = random.randint(0, 9)
-    while delay < 300:
-        d = (d + random.randint(1, 9)) % 10  # Tick to a new digit other than 'd'
-        s[i] = d
-        await asyncio.sleep(delay / 1000)
-        if wait:
-            wait -= 1
-        else:
-            delay = delay * 1.1
+    def set_number(self, number):
+        for j in range(4):
+            self[3 - j] = number % 10
+            number //= 10
 
 
-def shuffle(seq):
-    for i in range(len(seq) - 1):
-        j = random.randrange(i + 1, len(seq))
-        seq[i], seq[j] = seq[j], seq[i]
+def count(start=0):
+    val = start
+    while True:
+        yield val
+        val += 1
 
 
-async def main():
-    waits = [100, 175, 225, 250]
+def main():
     with SMSevenSegment(board.GP9) as s:
-        while True:
-            shuffle(waits)
-            await asyncio.gather(
-                *(digit_locker(s, i, di) for i, di in enumerate(waits))
-            )
-            await asyncio.sleep(1)
-            for i in range(4):
-                s[i] = None
-            await asyncio.sleep(0.5)
+        for i in count():
+            s.set_number(i)
+            time.sleep(0.05)
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    main()
