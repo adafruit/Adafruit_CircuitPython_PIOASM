@@ -140,7 +140,6 @@ if __name__ == "__main__":
     NEOPIXEL = board.NEOPIXEL
     NUM_PIXELS = 12
     pixels = NeoPixelBackground(NEOPIXEL, NUM_PIXELS)
-    i = 0
     while True:
         # Around 1 cycle per second
         pixels.fill(rainbowio.colorwheel(supervisor.ticks_ms() // 4))
