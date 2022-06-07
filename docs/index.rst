@@ -37,7 +37,8 @@ Table of Contents
 .. toctree::
     :caption: Other Links
 
-    Download <https://github.com/adafruit/Adafruit_CircuitPython_PIOASM/releases/latest>
+    Download from GitHub <https://github.com/adafruit/Adafruit_CircuitPython_PIOASM/releases/latest>
+    Download Library Bundle <https://circuitpython.org/libraries>
     CircuitPython Reference Documentation <https://docs.circuitpython.org>
     CircuitPython rp2pio Reference Documentation <https://docs.circuitpython.org/en/latest/shared-bindings/rp2pio>
     CircuitPython Support Forum <https://forums.adafruit.com/viewforum.php?f=60>
