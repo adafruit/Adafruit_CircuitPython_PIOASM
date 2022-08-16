@@ -17,7 +17,7 @@ import re
 splitter = re.compile(r",\s*|\s+(?:,\s*)?").split
 mov_splitter = re.compile("!|~|::").split
 
-__version__ = "0.0.0-auto.0"
+__version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_PIOASM.git"
 
 CONDITIONS = ["", "!x", "x--", "!y", "y--", "x!=y", "pin", "!osre"]
