@@ -49,7 +49,7 @@ repos:
     hooks:
     - id: mypy
       name: mypy
-      entry: "python3 run_mypy.py"
+      entry: "python3 etc/run_mypy.py"
       language: python
       additional_dependencies: ["mypy==0.790", "tomlkit"]
       types: [python]

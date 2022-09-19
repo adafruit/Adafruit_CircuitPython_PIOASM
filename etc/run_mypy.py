@@ -15,7 +15,7 @@ def print_check_call(command):
     subprocess.check_call(command)
 
 
-os.chdir(pathlib.Path(__file__).parent)
+os.chdir(pathlib.Path(__file__).parent.parent)
 
 pip_command = ["pip", "install", "--no-input", "--quiet", "--editable", "."]
 print_check_call(pip_command)
