@@ -40,3 +40,21 @@ repos:
         files: "^tests/"
         args:
           - --disable=missing-docstring,consider-using-f-string,duplicate-code
+  - repo: local
+  # We do not use pre-commit/mirrors-mypy,
+  # as it comes with opinionated defaults
+  # (like --ignore-missing-imports)
+  # and is difficult to configure to run
+  # with the dependencies correctly installed.
+    hooks:
+    - id: mypy
+      name: mypy
+      entry: "python3 run_mypy.py"
+      language: python
+      additional_dependencies: ["mypy==0.790", "tomlkit"]
+      types: [python]
+      # use require_serial so that script
+      # is only called once per commit
+      require_serial: true
+      # Print the number of files as a sanity-check
+      verbose: true
