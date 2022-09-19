@@ -14,6 +14,11 @@ Simple assembler to convert pioasm to bytes
 import array
 import re
 
+try:
+    from typing import List, Tuple, Optional
+except:  # pylint: disable=bare-except
+    pass
+
 splitter = re.compile(r",\s*|\s+(?:,\s*)?").split
 mov_splitter = re.compile("!|~|::").split
 
@@ -40,14 +45,16 @@ class Program:  # pylint: disable=too-few-public-methods
 
     """
 
-    def __init__(self, text_program: str, *, build_debuginfo=False) -> None:
+    debuginfo: Optional[Tuple[List[int], str]]
+
+    def __init__(self, text_program: str, *, build_debuginfo: bool = False) -> None:
         """Converts pioasm text to encoded instruction bytes"""
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
-        assembled = []
+        assembled: List[int] = []
         program_name = None
         labels = {}
         linemap = []
-        instructions = []
+        instructions: List[str] = []
         sideset_count = 0
         sideset_enable = 0
         wrap = None
@@ -83,9 +90,9 @@ class Program:  # pylint: disable=too-few-public-methods
 
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
-        for instruction in instructions:
+        for instruction_str in instructions:
             # print(instruction)
-            instruction = splitter(instruction.strip())
+            instruction = splitter(instruction_str.strip())
             delay = 0
             if instruction[-1].endswith("]"):  # Delay
                 delay = int(instruction[-1].strip("[]"), 0)
@@ -242,14 +249,14 @@ class Program:  # pylint: disable=too-few-public-methods
         else:
             self.debuginfo = None
 
-    def print_c_program(self, name, qualifier="const"):
+    def print_c_program(self, name: str, qualifier: str = "const") -> None:
         """Print the program into a C program snippet"""
-        if self.debuginfo is None:
-            linemap = None
-            program_lines = None
-        else:
+        if self.debuginfo:
             linemap = self.debuginfo[0][:]  # Use a copy since we destroy it
             program_lines = self.debuginfo[1].split("\n")
+        else:
+            linemap = []
+            program_lines = []
 
         print(
             f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};"
@@ -290,7 +297,7 @@ class Program:  # pylint: disable=too-few-public-methods
         print()
 
 
-def assemble(program_text: str) -> array.array:
+def assemble(program_text: str) -> "array.array[int]":
     """Converts pioasm text to encoded instruction bytes
 
     In new code, prefer to use the `Program` class so that the extra arguments
