@@ -55,10 +55,10 @@ LETTER_SPACE = array.array("H", [LED_OFF | (2 * DAH_DURATION)])
 WORD_SPACE = array.array("H", [LED_OFF | (4 * DIT_DURATION)])
 
 # Letters and words can be created by concatenating ("+") the elements
-E = DAH + LETTER_SPACE
+E = DIT + LETTER_SPACE
 O = DAH + DAH + DAH + LETTER_SPACE
 S = DIT + DIT + DIT + LETTER_SPACE
-T = DIT + LETTER_SPACE
+T = DAH + LETTER_SPACE
 SOS = S + O + S + WORD_SPACE
 TEST = T + E + S + T + WORD_SPACE
 
