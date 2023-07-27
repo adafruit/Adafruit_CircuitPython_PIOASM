@@ -69,6 +69,7 @@ sm = StateMachine(
     pull_threshold=16,
     auto_pull=True,
     out_shift_right=False,
+    **pio_code.pio_kwargs,
 )
 
 # To simply repeat 'TEST' forever, change to 'if True':
