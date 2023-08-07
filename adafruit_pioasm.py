@@ -52,6 +52,7 @@ class Program:  # pylint: disable=too-few-public-methods
         sideset_enable = 0
         wrap = None
         wrap_target = None
+        offset = -1
         for i, line in enumerate(text_program.split("\n")):
             line = line.strip()
             if not line:
@@ -62,6 +63,8 @@ class Program:  # pylint: disable=too-few-public-methods
                 if program_name:
                     raise RuntimeError("Multiple programs not supported")
                 program_name = line.split()[1]
+            elif line.startswith(".offset"):
+                offset = int(line.split()[1], 0)
             elif line.startswith(".wrap_target"):
                 wrap_target = len(instructions)
             elif line.startswith(".wrap"):
@@ -226,6 +229,9 @@ class Program:  # pylint: disable=too-few-public-methods
         self.pio_kwargs = {
             "sideset_enable": sideset_enable,
         }
+
+        if offset != -1:
+            self.pio_kwargs["offset"] = offset
 
         if sideset_count != 0:
             self.pio_kwargs["sideset_pin_count"] = sideset_count
