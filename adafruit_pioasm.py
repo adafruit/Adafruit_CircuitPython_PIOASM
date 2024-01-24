@@ -46,6 +46,7 @@ class Program:  # pylint: disable=too-few-public-methods
         assembled = []
         program_name = None
         labels = {}
+        public_labels = {}
         linemap = []
         instructions = []
         sideset_count = 0
@@ -79,6 +80,10 @@ class Program:  # pylint: disable=too-few-public-methods
                 if label in labels:
                     raise SyntaxError(f"Duplicate label {repr(label)}")
                 labels[label] = len(instructions)
+                if line.startswith("public "):
+                    public_labels[(line.split("public ")[1]).split(":")[0]] = len(
+                        instructions
+                    )
             elif line:
                 # Only add as an instruction if the line isn't empty
                 instructions.append(line)
@@ -240,6 +245,9 @@ class Program:  # pylint: disable=too-few-public-methods
             self.pio_kwargs["wrap"] = wrap
         if wrap_target is not None:
             self.pio_kwargs["wrap_target"] = wrap_target
+
+        if public_labels:
+            self.pio_kwargs["public_labels"] = public_labels
 
         self.assembled = array.array("H", assembled)
 
