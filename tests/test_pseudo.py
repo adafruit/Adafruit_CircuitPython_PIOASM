@@ -10,4 +10,4 @@ from pytest_helpers import assert_pio_kwargs
 
 
 def test_offset():
-    assert_pio_kwargs(".offset 7", offset=7, sideset_enable=False)
+    assert_pio_kwargs(".origin 7", offset=7, sideset_enable=False)
