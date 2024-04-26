@@ -147,7 +147,11 @@ class Program:  # pylint: disable=too-few-public-methods
             elif instruction[0] == "in":
                 #                instr delay src count
                 assembled.append(0b010_00000_000_00000)
-                assembled[-1] |= IN_SOURCES.index(instruction[1]) << 5
+                source = instruction[1]
+                try:
+                    assembled[-1] |= IN_SOURCES.index(source) << 5
+                except ValueError as exc:
+                    raise ValueError(f"Invalid in source '{source}'") from exc
                 count = int(instruction[-1], 0)
                 if not 1 <= count <= 32:
                     raise RuntimeError("Count out of range")
@@ -155,7 +159,13 @@ class Program:  # pylint: disable=too-few-public-methods
             elif instruction[0] == "out":
                 #                instr delay dst count
                 assembled.append(0b011_00000_000_00000)
-                assembled[-1] |= OUT_DESTINATIONS.index(instruction[1]) << 5
+                destination = instruction[1]
+                try:
+                    assembled[-1] |= OUT_DESTINATIONS.index(destination) << 5
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Invalid out destination '{destination}'"
+                    ) from exc
                 count = int(instruction[-1], 0)
                 if not 1 <= count <= 32:
                     raise RuntimeError("Count out of range")
