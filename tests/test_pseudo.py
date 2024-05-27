@@ -9,5 +9,5 @@ Tests pseudo-ops
 from pytest_helpers import assert_pio_kwargs
 
 
-def test_offset():
+def test_offset() -> None:
     assert_pio_kwargs(".origin 7", offset=7, sideset_enable=False)

@@ -57,13 +57,13 @@ def test_in_delay_with_sideset() -> None:
     assert_assembles_to("\n".join(source), [0b010_10_101_000_10001])
 
 
-def test_in_bad_source():
+def test_in_bad_source() -> None:
     assert_assembly_fails(
         "in bad, 17", match="Invalid in source 'bad'", errtype=ValueError
     )
 
 
-def test_in_bad_bitcount():
+def test_in_bad_bitcount() -> None:
     assert_assembly_fails(
         "in pins, 0", match="Count out of range", errtype=RuntimeError
     )
