@@ -9,21 +9,21 @@ Tests mov
 from pytest_helpers import assert_assembles_to, assert_assembly_fails
 
 
-def test_mov_non_happy():
+def test_mov_non_happy() -> None:
     # non happy path
     assert_assembly_fails(
         "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
     )
 
 
-def test_mov_invert():
+def test_mov_invert() -> None:
     # test moving and inverting
     assert_assembles_to("mov x, ~ x", [0b101_00000_001_01_001])
     assert_assembles_to("mov x, ~x", [0b101_00000_001_01_001])
     assert_assembles_to("mov x, !x", [0b101_00000_001_01_001])
 
 
-def test_mov_reverse():
+def test_mov_reverse() -> None:
     # test moving and reversing bits
     assert_assembles_to("mov x, :: x", [0b101_00000_001_10_001])
     assert_assembles_to("mov x, ::x", [0b101_00000_001_10_001])

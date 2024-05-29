@@ -9,7 +9,7 @@ Tests wrap
 from pytest_helpers import assert_assembly_fails, assert_pio_kwargs
 
 
-def test_wrap():
+def test_wrap() -> None:
     assert_assembly_fails(".wrap")
     assert_pio_kwargs(
         "nop\n.wrap_target\nnop\nnop\n.wrap",

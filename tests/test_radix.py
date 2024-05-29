@@ -9,13 +9,13 @@ Tests radix
 from pytest_helpers import assert_assembles_to
 
 
-def test_octal():
+def test_octal() -> None:
     assert_assembles_to(".side_set 0o1\nset x, 0o11", [0b111_00000_001_01001])
 
 
-def test_binary():
+def test_binary() -> None:
     assert_assembles_to(".side_set 0b101\nnop side 0b10001", [0b101_10001_010_00_010])
 
 
-def test_hex():
+def test_hex() -> None:
     assert_assembles_to(".side_set 0x0\nnop [0x10]", [0b101_10000_010_00_010])
