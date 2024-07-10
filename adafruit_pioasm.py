@@ -94,14 +94,14 @@ class Program:  # pylint: disable=too-few-public-methods
         for line in instructions:
             instruction = splitter(line.strip())
             delay = 0
-            if instruction[-1].endswith("]"):  # Delay
+            if len(instruction) > 1 and instruction[-1].endswith("]"):  # Delay
                 delay = int(instruction[-1].strip("[]"), 0)
                 if delay < 0:
                     raise RuntimeError("Delay negative:", delay)
                 if delay > max_delay:
                     raise RuntimeError("Delay too long:", delay)
                 instruction.pop()
-            if len(instruction) > 1 and instruction[-2] == "side":
+            if len(instruction) > 2 and instruction[-2] == "side":
                 if sideset_count == 0:
                     raise RuntimeError("No side_set count set")
                 sideset_value = int(instruction[-1], 0)
@@ -236,7 +236,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError("Set value out of range")
                 assembled[-1] |= value
             else:
-                raise RuntimeError("Unknown instruction:" + instruction[0])
+                raise RuntimeError(f"Unknown instruction: {instruction[0]}")
             assembled[-1] |= delay << 8
             # print(bin(assembled[-1]))
 
