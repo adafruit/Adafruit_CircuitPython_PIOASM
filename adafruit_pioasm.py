@@ -64,6 +64,10 @@ class Program:  # pylint: disable=too-few-public-methods
         mov_status_type = None
         mov_status_count = None
         mov_status_param = None
+        in_count = None
+        in_shift_right = None
+        auto_push = None
+        push_threshold = None
 
         def require_before_instruction():
             if len(instructions) != 0:
@@ -139,6 +143,29 @@ class Program:  # pylint: disable=too-few-public-methods
                 if not 0 <= mov_status_count < 16:
                     raise RuntimeError(f"Invalid mov_status count {mov_status_count}")
                 require_version(required_version, line)
+            elif words[0] == ".in":
+                require_before_instruction()
+                in_count = int_in_range(
+                    words[1], 32 if pio_version == 0 else 1, 33, ".in count"
+                )
+                auto_push = False
+
+                idx = 2
+                if idx < len(words) and words[idx] == "left":
+                    in_shift_right = False
+                    idx += 1
+                elif idx < len(words) and words[idx] == "right":
+                    in_shift_right = True
+                    idx += 1
+
+                if idx < len(words) and words[idx] == "auto":
+                    auto_push = True
+                    idx += 1
+
+                if idx < len(words):
+                    push_threshold = int_in_range(words[idx], 1, 33, ".in threshold")
+                    idx += 1
+
             elif line.endswith(":"):
                 label = line[:-1]
                 if label in labels:
@@ -325,6 +352,18 @@ class Program:  # pylint: disable=too-few-public-methods
             self.pio_kwargs["mov_status_type"] = mov_status_type
             self.pio_kwargs["mov_status_count"] = mov_status_count
             self.pio_kwargs["mov_status_param"] = mov_status_param
+
+        if in_count not in (None, 32):
+            self.pio_kwargs["in_count"] = in_count
+
+        if in_shift_right is not None:
+            self.pio_kwargs["in_shift_right"] = in_shift_right
+
+        if auto_push is not None:
+            self.pio_kwargs["auto_push"] = auto_push
+
+        if push_threshold is not None:
+            self.pio_kwargs["push_threshold"] = push_threshold
 
         self.assembled = array.array("H", assembled)
 

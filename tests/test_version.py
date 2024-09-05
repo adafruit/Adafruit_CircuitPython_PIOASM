@@ -61,3 +61,22 @@ def test_mov_status() -> None:
         mov_status_count=3,
         mov_status_param=0,
     )
+
+
+def test_dot_in() -> None:
+    assert_pio_kwargs(
+        ".in 32 left auto 11",
+        sideset_enable=0,
+        auto_push=True,
+        push_threshold=11,
+        in_shift_right=False,
+    )
+    assert_assembly_fails(".in 16")
+    assert_pio_kwargs(
+        ".pio_version 1\n.in 16 right",
+        pio_version=1,
+        sideset_enable=0,
+        in_count=16,
+        auto_push=False,
+        in_shift_right=True,
+    )
