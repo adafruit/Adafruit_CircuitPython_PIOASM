@@ -80,3 +80,22 @@ def test_dot_in() -> None:
         auto_push=False,
         in_shift_right=True,
     )
+
+
+def test_dot_out() -> None:
+    assert_pio_kwargs(
+        ".out 32 left auto 11",
+        sideset_enable=0,
+        auto_pull=True,
+        pull_threshold=11,
+        out_shift_right=False,
+    )
+    assert_assembly_fails(".out 16")
+    assert_pio_kwargs(
+        ".pio_version 1\n.out 16 right",
+        pio_version=1,
+        sideset_enable=0,
+        out_count=16,
+        auto_pull=False,
+        out_shift_right=True,
+    )
