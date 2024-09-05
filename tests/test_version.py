@@ -99,3 +99,11 @@ def test_dot_out() -> None:
         auto_pull=False,
         out_shift_right=True,
     )
+
+
+def test_dot_set() -> None:
+    assert_pio_kwargs(".set 32", sideset_enable=0)
+    assert_assembly_fails(".set 16")
+    assert_pio_kwargs(
+        ".pio_version 1\n.set 16 right", pio_version=1, sideset_enable=0, set_count=16
+    )

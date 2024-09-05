@@ -72,6 +72,7 @@ class Program:  # pylint: disable=too-few-public-methods
         out_shift_right = None
         auto_pull = None
         pull_threshold = None
+        set_count = None
 
         def require_before_instruction():
             if len(instructions) != 0:
@@ -189,6 +190,12 @@ class Program:  # pylint: disable=too-few-public-methods
                 if idx < len(words):
                     push_threshold = int_in_range(words[idx], 1, 33, ".in threshold")
                     idx += 1
+
+            elif words[0] == ".set":
+                require_before_instruction()
+                set_count = int_in_range(
+                    words[1], 32 if pio_version == 0 else 1, 33, ".set count"
+                )
 
             elif line.endswith(":"):
                 label = line[:-1]
@@ -376,6 +383,9 @@ class Program:  # pylint: disable=too-few-public-methods
             self.pio_kwargs["mov_status_type"] = mov_status_type
             self.pio_kwargs["mov_status_count"] = mov_status_count
             self.pio_kwargs["mov_status_param"] = mov_status_param
+
+        if set_count not in (None, 32):
+            self.pio_kwargs["set_count"] = set_count
 
         if out_count not in (None, 32):
             self.pio_kwargs["out_count"] = out_count
