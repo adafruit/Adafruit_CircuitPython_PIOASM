@@ -71,6 +71,14 @@ class Program:  # pylint: disable=too-few-public-methods
                     f"{instruction} requires .pio_version {required_version}"
                 )
 
+        def int_in_range(arg, low, high, what, radix=0):
+            result = int(arg, radix)
+            if low <= result < high:
+                return result
+            raise RuntimeError(
+                f"{what} must be at least {low} and no greater than {high}, got {result}"
+            )
+
         for i, line in enumerate(text_program.split("\n")):
             line = line.split(";")[0].strip()
             if not line:
@@ -81,9 +89,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError("Multiple programs not supported")
                 program_name = line.split()[1]
             elif line.startswith(".pio_version"):
-                pio_version = int(line.split()[1], 0)
-                if not 0 <= pio_version <= 1:
-                    raise RuntimeError(f"Invalid .pio_version {pio_version}")
+                pio_version = int_in_range(words[1], 0, 2, ".pio_version")
             elif line.startswith(".origin"):
                 offset = int(line.split()[1], 0)
             elif line.startswith(".wrap_target"):
