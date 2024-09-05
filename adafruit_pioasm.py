@@ -65,6 +65,10 @@ class Program:  # pylint: disable=too-few-public-methods
         mov_status_count = None
         mov_status_param = None
 
+        def require_before_instruction():
+            if len(instructions) != 0:
+                raise RuntimeError(f"{words[0]} must be before first instruction")
+
         def require_version(required_version, instruction):
             if pio_version < required_version:
                 raise RuntimeError(
@@ -89,8 +93,10 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError("Multiple programs not supported")
                 program_name = line.split()[1]
             elif line.startswith(".pio_version"):
+                require_before_instruction()
                 pio_version = int_in_range(words[1], 0, 2, ".pio_version")
             elif line.startswith(".origin"):
+                require_before_instruction()
                 offset = int(line.split()[1], 0)
             elif line.startswith(".wrap_target"):
                 wrap_target = len(instructions)
@@ -102,12 +108,14 @@ class Program:  # pylint: disable=too-few-public-methods
                 sideset_count = int(line.split()[1], 0)
                 sideset_enable = "opt" in line
             elif line.startswith(".fifo"):
+                require_before_instruction()
                 fifo_type = line.split()[1]
                 required_version = FIFO_TYPES.get(fifo_type)
                 if required_version is None:
                     raise RuntimeError(f"Invalid fifo type {fifo_type}")
                 require_version(required_version, line)
             elif line.startswith(".mov_status"):
+                require_before_instruction()
                 required_version = 0
                 mov_status_param = 0
                 mov_status_type = words[1]
