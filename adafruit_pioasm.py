@@ -33,6 +33,7 @@ MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
 MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
+FIFO_TYPES = {"txrx": 0, "tx": 0, "rx": 0, "txput": 1, "txget": 1, "putget": 1}
 
 
 class Program:  # pylint: disable=too-few-public-methods
@@ -59,6 +60,13 @@ class Program:  # pylint: disable=too-few-public-methods
         wrap_target = None
         offset = -1
         pio_version = 0
+        fifo_type = None
+
+        def require_version(required_version, instruction):
+            if pio_version < required_version:
+                raise RuntimeError(
+                    f"{instruction} requires .pio_version {required_version}"
+                )
 
         for i, line in enumerate(text_program.split("\n")):
             line = line.strip()
@@ -72,6 +80,8 @@ class Program:  # pylint: disable=too-few-public-methods
                 program_name = line.split()[1]
             elif line.startswith(".pio_version"):
                 pio_version = int(line.split()[1], 0)
+                if not 0 <= pio_version <= 1:
+                    raise RuntimeError(f"Invalid .pio_version {pio_version}")
             elif line.startswith(".origin"):
                 offset = int(line.split()[1], 0)
             elif line.startswith(".wrap_target"):
@@ -83,6 +93,12 @@ class Program:  # pylint: disable=too-few-public-methods
             elif line.startswith(".side_set"):
                 sideset_count = int(line.split()[1], 0)
                 sideset_enable = "opt" in line
+            elif line.startswith(".fifo"):
+                fifo_type = line.split()[1]
+                required_version = FIFO_TYPES.get(fifo_type)
+                if required_version is None:
+                    raise RuntimeError(f"Invalid fifo type {fifo_type}")
+                require_version(required_version, line)
             elif line.endswith(":"):
                 label = line[:-1]
                 if label in labels:
@@ -261,6 +277,9 @@ class Program:  # pylint: disable=too-few-public-methods
             self.pio_kwargs["wrap"] = wrap
         if wrap_target is not None:
             self.pio_kwargs["wrap_target"] = wrap_target
+
+        if FIFO_TYPES.get(fifo_type):
+            self.pio_kwargs["fifo_type"] = fifo_type
 
         self.assembled = array.array("H", assembled)
 
