@@ -72,11 +72,10 @@ class Program:  # pylint: disable=too-few-public-methods
                 )
 
         for i, line in enumerate(text_program.split("\n")):
-            line = line.strip()
+            line = line.split(";")[0].strip()
             if not line:
                 continue
-            if ";" in line:
-                line = line.split(";")[0].strip()
+            words = line.split()
             if line.startswith(".program"):
                 if program_name:
                     raise RuntimeError("Multiple programs not supported")
@@ -103,7 +102,6 @@ class Program:  # pylint: disable=too-few-public-methods
                     raise RuntimeError(f"Invalid fifo type {fifo_type}")
                 require_version(required_version, line)
             elif line.startswith(".mov_status"):
-                words = line.split()
                 required_version = 0
                 mov_status_param = 0
                 mov_status_type = words[1]
