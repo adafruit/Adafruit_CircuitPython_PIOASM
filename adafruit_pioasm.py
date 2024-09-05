@@ -101,7 +101,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 pio_version = int_in_range(words[1], 0, 2, ".pio_version")
             elif line.startswith(".origin"):
                 require_before_instruction()
-                offset = int(line.split()[1], 0)
+                offset = int_in_range(words[1], 0, 32, ".origin")
             elif line.startswith(".wrap_target"):
                 wrap_target = len(instructions)
             elif line.startswith(".wrap"):
@@ -126,7 +126,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 if words[1] in ("txfifo", "rxfifo"):
                     if words[2] != "<":
                         raise RuntimeError(f"Invalid {line}")
-                    mov_status_count = int(words[3])
+                    mov_status_count = int_in_range(words[3], 0, 16, words[1])
                 elif words[1] == "irq":
                     required_version = 1
                     idx = 2
@@ -139,9 +139,6 @@ class Program:  # pylint: disable=too-few-public-methods
                     if words[idx] != "set":
                         raise RuntimeError(f"Invalid {line})")
                     mov_status_count = int(words[idx + 1])
-
-                if not 0 <= mov_status_count < 16:
-                    raise RuntimeError(f"Invalid mov_status count {mov_status_count}")
                 require_version(required_version, line)
             elif words[0] == ".in":
                 require_before_instruction()
