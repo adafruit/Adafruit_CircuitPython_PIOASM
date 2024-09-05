@@ -61,6 +61,9 @@ class Program:  # pylint: disable=too-few-public-methods
         offset = -1
         pio_version = 0
         fifo_type = None
+        mov_status_type = None
+        mov_status_count = None
+        mov_status_param = None
 
         def require_version(required_version, instruction):
             if pio_version < required_version:
@@ -98,6 +101,31 @@ class Program:  # pylint: disable=too-few-public-methods
                 required_version = FIFO_TYPES.get(fifo_type)
                 if required_version is None:
                     raise RuntimeError(f"Invalid fifo type {fifo_type}")
+                require_version(required_version, line)
+            elif line.startswith(".mov_status"):
+                words = line.split()
+                required_version = 0
+                mov_status_param = 0
+                mov_status_type = words[1]
+                if words[1] in ("txfifo", "rxfifo"):
+                    if words[2] != "<":
+                        raise RuntimeError(f"Invalid {line}")
+                    mov_status_count = int(words[3])
+                elif words[1] == "irq":
+                    required_version = 1
+                    idx = 2
+                    if words[idx] == "next":
+                        mov_status_param = 2
+                        idx += 1
+                    if words[idx] == "next":
+                        mov_status_param = 1
+                        idx += 1
+                    if words[idx] != "set":
+                        raise RuntimeError(f"Invalid {line})")
+                    mov_status_count = int(words[idx + 1])
+
+                if not 0 <= mov_status_count < 16:
+                    raise RuntimeError(f"Invalid mov_status count {mov_status_count}")
                 require_version(required_version, line)
             elif line.endswith(":"):
                 label = line[:-1]
@@ -280,6 +308,11 @@ class Program:  # pylint: disable=too-few-public-methods
 
         if FIFO_TYPES.get(fifo_type):
             self.pio_kwargs["fifo_type"] = fifo_type
+
+        if mov_status_type is not None:
+            self.pio_kwargs["mov_status_type"] = mov_status_type
+            self.pio_kwargs["mov_status_count"] = mov_status_count
+            self.pio_kwargs["mov_status_param"] = mov_status_param
 
         self.assembled = array.array("H", assembled)
 

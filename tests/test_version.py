@@ -25,3 +25,39 @@ def test_fifo() -> None:
         sideset_enable=0,
         fifo_type="txput",
     )
+
+
+def test_mov_status() -> None:
+    assert_pio_kwargs(
+        ".mov_status txfifo < 5",
+        sideset_enable=0,
+        mov_status_type="txfifo",
+        mov_status_count=5,
+        mov_status_param=0,
+    )
+    assert_pio_kwargs(
+        ".mov_status rxfifo < 8",
+        sideset_enable=0,
+        mov_status_type="rxfifo",
+        mov_status_count=8,
+        mov_status_param=0,
+    )
+    assert_assembly_fails(".mov_status rxfifo < -1")
+    assert_assembly_fails(".mov_status rxfifo < 16")
+    assert_assembly_fails(".mov_status irq next set 3")
+    assert_pio_kwargs(
+        ".pio_version 1\n.mov_status irq next set 3",
+        pio_version=1,
+        sideset_enable=0,
+        mov_status_type="irq",
+        mov_status_count=3,
+        mov_status_param=2,
+    )
+    assert_pio_kwargs(
+        ".pio_version 1\n.mov_status irq set 3",
+        pio_version=1,
+        sideset_enable=0,
+        mov_status_type="irq",
+        mov_status_count=3,
+        mov_status_param=0,
+    )
