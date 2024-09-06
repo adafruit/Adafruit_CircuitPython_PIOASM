@@ -6,7 +6,7 @@
 Tests version dependent instructions
 """
 
-from pytest_helpers import assert_pio_kwargs, assert_assembly_fails
+from pytest_helpers import assert_pio_kwargs, assert_assembly_fails, assert_assembles_to
 
 
 def test_version() -> None:
@@ -107,3 +107,9 @@ def test_dot_set() -> None:
     assert_pio_kwargs(
         ".pio_version 1\n.set 16 right", pio_version=1, sideset_enable=0, set_count=16
     )
+
+
+def test_irq_v1() -> None:
+    assert_assembly_fails("irq 7 next")
+    assert_assembles_to(".pio_version 1\nirq 5 next", [0b110_00000_0_0_0_11_101])
+    assert_assembles_to(".pio_version 1\nirq wait 1 prev", [0b110_00000_0_0_1_01_001])

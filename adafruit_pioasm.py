@@ -325,19 +325,33 @@ class Program:  # pylint: disable=too-few-public-methods
                 if len(instruction) > 3:
                     assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
             elif instruction[0] == "irq":
-                #                instr delay z c w index
+                #                instr delay z c w tp/idx
                 assembled.append(0b110_00000_0_0_0_00000)
-                if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
+
+                irq_type = 0
+                print(f"check prev/next/rel {instruction=}")
+                if instruction[-1] == "prev":
+                    irq_type = 1
+                    require_version(1, "irq prev")
                     instruction.pop()
-                num = int(instruction[-1], 0)
-                if not 0 <= num <= 7:
-                    raise RuntimeError("Interrupt index out of range")
+                elif instruction[-1] == "next":
+                    irq_type = 3
+                    require_version(1, "irq next")
+                    instruction.pop()
+                elif instruction[-1] == "rel":
+                    irq_type = 2
+                    instruction.pop()
+
+                assembled[-1] |= irq_type << 3
+
+                num = int_in_range(instruction[-1], 0, 8, "irq index")
                 assembled[-1] |= num
-                if len(instruction) == 3:  # after rel has been removed
-                    if instruction[1] == "wait":
+                instruction.pop()
+
+                if len(instruction) > 1:  # after rel has been removed
+                    if instruction[-1] == "wait":
                         assembled[-1] |= 0x20
-                    elif instruction[1] == "clear":
+                    elif instruction[-1] == "clear":
                         assembled[-1] |= 0x40
                     # All other values are the default of set without waiting
             elif instruction[0] == "set":
