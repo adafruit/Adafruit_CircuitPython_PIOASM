@@ -92,6 +92,18 @@ class Program:  # pylint: disable=too-few-public-methods
                 f"{what} must be at least {low} and no greater than {high}, got {result}"
             )
 
+        def parse_rxfifo_brackets(arg, fifo_dir):
+            require_version(1, line)
+            if (  # pylint: disable=consider-using-in
+                fifo_type != "putget" and fifo_type != fifo_dir
+            ):
+                raise RuntimeError(
+                    f"FIFO must be configured for '{fifo_dir}' or 'putget' for {line}"
+                )
+            if arg.endswith("[y]"):
+                return 0b1000
+            return int_in_range(arg[7:-1], 0, 8, "rxfifo index")
+
         for i, line in enumerate(text_program.split("\n")):
             line = line.split(";")[0].strip()
             if not line:
@@ -212,7 +224,11 @@ class Program:  # pylint: disable=too-few-public-methods
         for line in instructions:
             instruction = splitter(line.strip())
             delay = 0
-            if len(instruction) > 1 and instruction[-1].endswith("]"):  # Delay
+            if (
+                len(instruction) > 1
+                and instruction[-1].startswith("[")
+                and instruction[-1].endswith("]")
+            ):  # Delay
                 delay = int(instruction[-1].strip("[]"), 0)
                 if delay < 0:
                     raise RuntimeError("Delay negative:", delay)
@@ -303,33 +319,43 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled[-1] |= 0x40
             elif instruction[0] == "mov":
                 #                instr delay dst op src
-                assembled.append(0b101_00000_000_00_000)
-                assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
-                source = instruction[-1]
-                source_split = mov_splitter(source)
-                if len(source_split) == 1:
-                    try:
-                        assembled[-1] |= MOV_SOURCES.index(source)
-                    except ValueError as exc:
-                        raise ValueError(f"Invalid mov source '{source}'") from exc
+                if instruction[1].startswith("rxfifo["):  # mov rxfifo[], isr
+                    assembled.append(0b100_00000_0001_0_000)
+                    if instruction[2] != "isr":
+                        raise ValueError("mov rxfifo[] source must be isr")
+                    assembled[-1] |= parse_rxfifo_brackets(instruction[1], "put")
+                elif instruction[2].startswith("rxfifo["):  # mov osr, rxfifo[]
+                    assembled.append(0b100_00000_1001_0_000)
+                    if instruction[1] != "osr":
+                        raise ValueError("mov ,rxfifo[] target must be osr")
+                    assembled[-1] |= parse_rxfifo_brackets(instruction[2], "get")
                 else:
-                    assembled[-1] |= MOV_SOURCES.index(source_split[1])
-                    if source[:1] == "!":
-                        assembled[-1] |= 0x08
-                    elif source[:1] == "~":
-                        assembled[-1] |= 0x08
-                    elif source[:2] == "::":
-                        assembled[-1] |= 0x10
+                    assembled.append(0b101_00000_000_00_000)
+                    assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
+                    source = instruction[-1]
+                    source_split = mov_splitter(source)
+                    if len(source_split) == 1:
+                        try:
+                            assembled[-1] |= MOV_SOURCES.index(source)
+                        except ValueError as exc:
+                            raise ValueError(f"Invalid mov source '{source}'") from exc
                     else:
-                        raise RuntimeError("Invalid mov operator:", source[:1])
-                if len(instruction) > 3:
-                    assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
+                        assembled[-1] |= MOV_SOURCES.index(source_split[1])
+                        if source[:1] == "!":
+                            assembled[-1] |= 0x08
+                        elif source[:1] == "~":
+                            assembled[-1] |= 0x08
+                        elif source[:2] == "::":
+                            assembled[-1] |= 0x10
+                        else:
+                            raise RuntimeError("Invalid mov operator:", source[:1])
+                    if len(instruction) > 3:
+                        assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
             elif instruction[0] == "irq":
                 #                instr delay z c w tp/idx
                 assembled.append(0b110_00000_0_0_0_00000)
 
                 irq_type = 0
-                print(f"check prev/next/rel {instruction=}")
                 if instruction[-1] == "prev":
                     irq_type = 1
                     require_version(1, "irq prev")

@@ -113,3 +113,12 @@ def test_irq_v1() -> None:
     assert_assembly_fails("irq 7 next")
     assert_assembles_to(".pio_version 1\nirq 5 next", [0b110_00000_0_0_0_11_101])
     assert_assembles_to(".pio_version 1\nirq wait 1 prev", [0b110_00000_0_0_1_01_001])
+
+
+def test_mov_v1() -> None:
+    assert_assembly_fails("mov osr, rxfifo[y]")
+    assert_assembly_fails(".pio_version 1\nmov osr, rxfifo[y]")
+    prefix = ".pio_version 1\n.fifo putget\n"
+    assert_assembly_fails(prefix + "mov osr, rxfifo[8]")
+    assert_assembles_to(prefix + "mov rxfifo[y], isr", [0b100_00000_0001_1_000])
+    assert_assembles_to(prefix + "mov osr, rxfifo[1]", [0b100_00000_1001_0_001])
