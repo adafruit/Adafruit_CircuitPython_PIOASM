@@ -29,7 +29,8 @@ CONDITIONS = ["", "!x", "x--", "!y", "y--", "x!=y", "pin", "!osre"]
 IN_SOURCES = ["pins", "x", "y", "null", None, None, "isr", "osr"]
 OUT_DESTINATIONS = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
 WAIT_SOURCES = ["gpio", "pin", "irq", None]
-MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
+MOV_DESTINATIONS_V0 = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
+MOV_DESTINATIONS_V1 = ["pins", "x", "y", "pindirs", "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
 MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
@@ -219,6 +220,11 @@ class Program:  # pylint: disable=too-few-public-methods
                 instructions.append(line)
                 linemap.append(i)
 
+        if pio_version >= 1:
+            mov_destinations = MOV_DESTINATIONS_V1
+        else:
+            mov_destinations = MOV_DESTINATIONS_V0
+
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
         for line in instructions:
@@ -331,7 +337,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled[-1] |= parse_rxfifo_brackets(instruction[2], "get")
                 else:
                     assembled.append(0b101_00000_000_00_000)
-                    assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
+                    assembled[-1] |= mov_destinations.index(instruction[1]) << 5
                     source = instruction[-1]
                     source_split = mov_splitter(source)
                     if len(source_split) == 1:

@@ -122,3 +122,6 @@ def test_mov_v1() -> None:
     assert_assembly_fails(prefix + "mov osr, rxfifo[8]")
     assert_assembles_to(prefix + "mov rxfifo[y], isr", [0b100_00000_0001_1_000])
     assert_assembles_to(prefix + "mov osr, rxfifo[1]", [0b100_00000_1001_0_001])
+
+    assert_assembly_fails("mov pindirs, null", errtype=ValueError)
+    assert_assembles_to(prefix + "mov pindirs, null", [0b101_00000_01100011])
