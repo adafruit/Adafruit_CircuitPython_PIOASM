@@ -125,3 +125,16 @@ def test_mov_v1() -> None:
 
     assert_assembly_fails("mov pindirs, null", errtype=ValueError)
     assert_assembles_to(prefix + "mov pindirs, null", [0b101_00000_01100011])
+
+
+def test_wait_v1() -> None:
+    assert_assembly_fails("wait 0 jmppin")
+    assert_assembly_fails("wait 0 irq 5 next")
+    prefix = ".pio_version 1\n"
+    assert_assembly_fails(prefix + "wait 0 jmppin +")
+    assert_assembly_fails(prefix + "wait 0 jmppin + 7")
+    assert_assembles_to(prefix + "wait 0 jmppin + 3", [0b001_00000_0_11_00011])
+    assert_assembles_to(prefix + "wait 1 jmppin", [0b001_00000_1_11_00000])
+
+    assert_assembles_to(prefix + "wait 0 irq 5 next", [0b001_00000_0_10_11_101])
+    assert_assembles_to(prefix + "wait 1 irq 4 prev", [0b001_00000_1_10_01_100])

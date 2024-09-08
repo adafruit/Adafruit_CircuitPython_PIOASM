@@ -278,16 +278,36 @@ class Program:  # pylint: disable=too-few-public-methods
                 #                instr delay p sr index
                 assembled.append(0b001_00000_0_00_00000)
                 polarity = int(instruction[1], 0)
+                source = instruction[2]
                 if not 0 <= polarity <= 1:
                     raise RuntimeError("Invalid polarity")
                 assembled[-1] |= polarity << 7
-                assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
-                num = int(instruction[3], 0)
-                if not 0 <= num <= 31:
-                    raise RuntimeError("Wait num out of range")
-                assembled[-1] |= num
-                if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
+                if instruction[2] == "jmppin":
+                    require_version(1, "wait jmppin")
+                    num = 0
+                    print("wait jmppin", instruction)
+                    if len(instruction) > 3:
+                        if len(instruction) < 5 or instruction[3] != "+":
+                            raise RuntimeError("invalid wait jmppin")
+                        num = int_in_range(instruction[4], 0, 4, "wait jmppin offset")
+                    assembled[-1] |= num
+                    assembled[-1] |= 0b11 << 5  # JMPPIN wait source
+                else:
+                    assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
+                    num = int(instruction[3], 0)
+                    if not 0 <= num <= 31:
+                        raise RuntimeError("Wait num out of range")
+                    assembled[-1] |= num
+                    # The flag index is decoded in the same way as the IRQ
+                    # index field, decoding down from the two MSBs
+                    if instruction[-1] == "next":
+                        require_version(1, "wait irq next")
+                        assembled[-1] |= 0b11000
+                    elif instruction[-1] == "prev":
+                        require_version(1, "wait irq prev")
+                        assembled[-1] |= 0b01000
+                    elif instruction[-1] == "rel":
+                        assembled[-1] |= 0b10000
             elif instruction[0] == "in":
                 #                instr delay src count
                 assembled.append(0b010_00000_000_00000)
