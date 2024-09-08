@@ -86,7 +86,7 @@ import adafruit_pioasm
 #  read: 00000000  00000000  00000000  00000000  00000000  00000000  00000000  00000000
 
 
-def i2s_codec(
+def i2s_codec(  # pylint: disable=too-many-arguments
     channels=2,
     sample_rate=48000,
     bits=16,
