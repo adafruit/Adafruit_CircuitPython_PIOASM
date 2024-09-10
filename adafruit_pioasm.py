@@ -63,8 +63,7 @@ class Program:  # pylint: disable=too-few-public-methods
         pio_version = 0
         fifo_type = None
         mov_status_type = None
-        mov_status_count = None
-        mov_status_param = None
+        mov_status_n = None
         in_count = None
         in_shift_right = None
         auto_push = None
@@ -139,24 +138,26 @@ class Program:  # pylint: disable=too-few-public-methods
             elif line.startswith(".mov_status"):
                 require_before_instruction()
                 required_version = 0
-                mov_status_param = 0
+                mov_status_n = 0
                 mov_status_type = words[1]
                 if words[1] in ("txfifo", "rxfifo"):
                     if words[2] != "<":
                         raise RuntimeError(f"Invalid {line}")
-                    mov_status_count = int_in_range(words[3], 0, 16, words[1])
+                    mov_status_n = int_in_range(words[3], 0, 32, words[1])
                 elif words[1] == "irq":
                     required_version = 1
                     idx = 2
                     if words[idx] == "next":
-                        mov_status_param = 2
+                        mov_status_n = 0x10
                         idx += 1
-                    if words[idx] == "next":
-                        mov_status_param = 1
+                    elif words[idx] == "prev":
+                        mov_status_n = 0x8
                         idx += 1
+                    else:
+                        mov_status_n = 0
                     if words[idx] != "set":
                         raise RuntimeError(f"Invalid {line})")
-                    mov_status_count = int(words[idx + 1])
+                    mov_status_n |= int_in_range(words[idx + 1], 0, 8, "mov_status irq")
                 require_version(required_version, line)
             elif words[0] == ".out":
                 require_before_instruction()
@@ -447,8 +448,7 @@ class Program:  # pylint: disable=too-few-public-methods
 
         if mov_status_type is not None:
             self.pio_kwargs["mov_status_type"] = mov_status_type
-            self.pio_kwargs["mov_status_count"] = mov_status_count
-            self.pio_kwargs["mov_status_param"] = mov_status_param
+            self.pio_kwargs["mov_status_n"] = mov_status_n
 
         if set_count not in (None, 32):
             self.pio_kwargs["set_count"] = set_count
