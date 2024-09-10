@@ -34,7 +34,15 @@ MOV_DESTINATIONS_V1 = ["pins", "x", "y", "pindirs", "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
 MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
-FIFO_TYPES = {"txrx": 0, "tx": 0, "rx": 0, "txput": 1, "txget": 1, "putget": 1}
+FIFO_TYPES = {
+    "auto": 0,
+    "txrx": 0,
+    "tx": 0,
+    "rx": 0,
+    "txput": 1,
+    "txget": 1,
+    "putget": 1,
+}
 
 
 class Program:  # pylint: disable=too-few-public-methods
@@ -61,7 +69,7 @@ class Program:  # pylint: disable=too-few-public-methods
         wrap_target = None
         offset = -1
         pio_version = 0
-        fifo_type = None
+        fifo_type = "auto"
         mov_status_type = None
         mov_status_n = None
         in_count = None
@@ -208,7 +216,7 @@ class Program:  # pylint: disable=too-few-public-methods
             elif words[0] == ".set":
                 require_before_instruction()
                 set_count = int_in_range(
-                    words[1], 32 if pio_version == 0 else 1, 33, ".set count"
+                    words[1], 5 if pio_version == 0 else 1, 6, ".set count"
                 )
 
             elif line.endswith(":"):
@@ -443,18 +451,18 @@ class Program:  # pylint: disable=too-few-public-methods
         if wrap_target is not None:
             self.pio_kwargs["wrap_target"] = wrap_target
 
-        if FIFO_TYPES.get(fifo_type):
+        if fifo_type != "auto":
             self.pio_kwargs["fifo_type"] = fifo_type
 
         if mov_status_type is not None:
             self.pio_kwargs["mov_status_type"] = mov_status_type
             self.pio_kwargs["mov_status_n"] = mov_status_n
 
-        if set_count not in (None, 32):
-            self.pio_kwargs["set_count"] = set_count
+        if set_count is not None:
+            self.pio_kwargs["set_pin_count"] = set_count
 
         if out_count not in (None, 32):
-            self.pio_kwargs["out_count"] = out_count
+            self.pio_kwargs["out_pin_count"] = out_count
 
         if out_shift_right is not None:
             self.pio_kwargs["out_shift_right"] = out_shift_right
@@ -466,7 +474,7 @@ class Program:  # pylint: disable=too-few-public-methods
             self.pio_kwargs["pull_threshold"] = pull_threshold
 
         if in_count not in (None, 32):
-            self.pio_kwargs["in_count"] = in_count
+            self.pio_kwargs["in_pin_count"] = in_count
 
         if in_shift_right is not None:
             self.pio_kwargs["in_shift_right"] = in_shift_right

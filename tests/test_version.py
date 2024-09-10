@@ -17,7 +17,8 @@ def test_version() -> None:
 
 
 def test_fifo() -> None:
-    assert_pio_kwargs(".fifo txrx", sideset_enable=0)
+    assert_pio_kwargs(".fifo txrx", sideset_enable=0, fifo_type="txrx")
+    assert_pio_kwargs(".fifo auto", sideset_enable=0)
     assert_assembly_fails(".fifo txput")
     assert_pio_kwargs(
         ".pio_version 1\n.fifo txput",
@@ -80,7 +81,7 @@ def test_dot_in() -> None:
         ".pio_version 1\n.in 16 right",
         pio_version=1,
         sideset_enable=0,
-        in_count=16,
+        in_pin_count=16,
         auto_push=False,
         in_shift_right=True,
     )
@@ -99,17 +100,19 @@ def test_dot_out() -> None:
         ".pio_version 1\n.out 16 right",
         pio_version=1,
         sideset_enable=0,
-        out_count=16,
+        out_pin_count=16,
         auto_pull=False,
         out_shift_right=True,
     )
 
 
 def test_dot_set() -> None:
-    assert_pio_kwargs(".set 32", sideset_enable=0)
+    assert_pio_kwargs(".set 5", sideset_enable=0, set_pin_count=5)
     assert_assembly_fails(".set 16")
+    assert_assembly_fails(".pio_version 1\n.set 16")
+    assert_assembly_fails(".set 3")
     assert_pio_kwargs(
-        ".pio_version 1\n.set 16 right", pio_version=1, sideset_enable=0, set_count=16
+        ".pio_version 1\n.set 3 right", pio_version=1, sideset_enable=0, set_pin_count=3
     )
 
 
