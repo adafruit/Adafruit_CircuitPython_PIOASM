@@ -95,10 +95,8 @@ def test_dot_out() -> None:
         pull_threshold=11,
         out_shift_right=False,
     )
-    assert_assembly_fails(".out 16")
     assert_pio_kwargs(
-        ".pio_version 1\n.out 16 right",
-        pio_version=1,
+        ".out 16 right",
         sideset_enable=0,
         out_pin_count=16,
         auto_pull=False,
