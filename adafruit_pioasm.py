@@ -358,12 +358,12 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled.append(0b100_00000_0001_0_000)
                     if instruction[2] != "isr":
                         raise ValueError("mov rxfifo[] source must be isr")
-                    assembled[-1] |= parse_rxfifo_brackets(instruction[1], "put")
+                    assembled[-1] |= parse_rxfifo_brackets(instruction[1], "txput")
                 elif instruction[2].startswith("rxfifo["):  # mov osr, rxfifo[]
                     assembled.append(0b100_00000_1001_0_000)
                     if instruction[1] != "osr":
                         raise ValueError("mov ,rxfifo[] target must be osr")
-                    assembled[-1] |= parse_rxfifo_brackets(instruction[2], "get")
+                    assembled[-1] |= parse_rxfifo_brackets(instruction[2], "txget")
                 else:
                     assembled.append(0b101_00000_000_00_000)
                     assembled[-1] |= mov_destinations.index(instruction[1]) << 5
