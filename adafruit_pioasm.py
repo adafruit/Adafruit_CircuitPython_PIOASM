@@ -292,7 +292,6 @@ class Program:  # pylint: disable=too-few-public-methods
                 if instruction[2] == "jmppin":
                     require_version(1, "wait jmppin")
                     num = 0
-                    print("wait jmppin", instruction)
                     if len(instruction) > 3:
                         if len(instruction) < 5 or instruction[3] != "+":
                             raise RuntimeError("invalid wait jmppin")
