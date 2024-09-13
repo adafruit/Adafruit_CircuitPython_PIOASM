@@ -234,7 +234,7 @@ class Program:  # pylint: disable=too-few-public-methods
 
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
-        for line in instructions:
+        for line in instructions:  # pylint: disable=too-many-nested-blocks
             instruction = splitter(line.strip())
             delay = 0
             if (
@@ -299,21 +299,32 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled[-1] |= num
                     assembled[-1] |= 0b11 << 5  # JMPPIN wait source
                 else:
+                    idx = 3
                     assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
-                    num = int(instruction[3], 0)
-                    if not 0 <= num <= 31:
-                        raise RuntimeError("Wait num out of range")
+                    if source == "irq":
+                        if instruction[idx] == "next":
+                            require_version(1, "wait irq next")
+                            assembled[-1] |= 0b11000
+                            idx += 1
+                        elif instruction[idx] == "prev":
+                            require_version(1, "wait irq prev")
+                            assembled[-1] |= 0b01000
+                            idx += 1
+
+                        limit = 8
+                        # The flag index is decoded in the same way as the IRQ
+                        # index field, decoding down from the two MSBs
+                        if instruction[-1] == "rel":
+                            if assembled[-1] & 0b11000:
+                                raise RuntimeError("cannot use next/prev with rel")
+                            assembled[-1] |= 0b10000
+                    else:
+                        limit = 32
+                    num = int_in_range(
+                        instruction[idx], 0, limit, "wait {instruction[2]}"
+                    )
                     assembled[-1] |= num
-                    # The flag index is decoded in the same way as the IRQ
-                    # index field, decoding down from the two MSBs
-                    if instruction[-1] == "next":
-                        require_version(1, "wait irq next")
-                        assembled[-1] |= 0b11000
-                    elif instruction[-1] == "prev":
-                        require_version(1, "wait irq prev")
-                        assembled[-1] |= 0b01000
-                    elif instruction[-1] == "rel":
-                        assembled[-1] |= 0b10000
+
             elif instruction[0] == "in":
                 #                instr delay src count
                 assembled.append(0b010_00000_000_00000)
@@ -352,15 +363,15 @@ class Program:  # pylint: disable=too-few-public-methods
             elif instruction[0] == "mov":
                 #                instr delay dst op src
                 if instruction[1].startswith("rxfifo["):  # mov rxfifo[], isr
-                    assembled.append(0b100_00000_0001_0_000)
+                    assembled.append(0b100_00000_0001_1_000)
                     if instruction[2] != "isr":
                         raise ValueError("mov rxfifo[] source must be isr")
-                    assembled[-1] |= parse_rxfifo_brackets(instruction[1], "txput")
+                    assembled[-1] ^= parse_rxfifo_brackets(instruction[1], "txput")
                 elif instruction[2].startswith("rxfifo["):  # mov osr, rxfifo[]
-                    assembled.append(0b100_00000_1001_0_000)
+                    assembled.append(0b100_00000_1001_1_000)
                     if instruction[1] != "osr":
                         raise ValueError("mov ,rxfifo[] target must be osr")
-                    assembled[-1] |= parse_rxfifo_brackets(instruction[2], "txget")
+                    assembled[-1] ^= parse_rxfifo_brackets(instruction[2], "txget")
                 else:
                     assembled.append(0b101_00000_000_00_000)
                     assembled[-1] |= mov_destinations.index(instruction[1]) << 5
@@ -388,30 +399,35 @@ class Program:  # pylint: disable=too-few-public-methods
                 assembled.append(0b110_00000_0_0_0_00000)
 
                 irq_type = 0
-                if instruction[-1] == "prev":
+                idx = 1
+                if instruction[idx] == "wait":
+                    assembled[-1] |= 0x20
+                    idx += 1
+                elif instruction[idx] == "clear":
+                    assembled[-1] |= 0x40
+                    idx += 1
+
+                if instruction[idx] == "prev":
                     irq_type = 1
                     require_version(1, "irq prev")
-                    instruction.pop()
-                elif instruction[-1] == "next":
+                    idx += 1
+                elif instruction[idx] == "next":
                     irq_type = 3
                     require_version(1, "irq next")
-                    instruction.pop()
-                elif instruction[-1] == "rel":
+                    idx += 1
+
+                if instruction[-1] == "rel":
+                    if irq_type != 0:
+                        raise RuntimeError("cannot use next/prev with rel")
                     irq_type = 2
                     instruction.pop()
 
                 assembled[-1] |= irq_type << 3
 
-                num = int_in_range(instruction[-1], 0, 8, "irq index")
+                num = int_in_range(instruction[idx], 0, 8, "irq index")
                 assembled[-1] |= num
                 instruction.pop()
 
-                if len(instruction) > 1:  # after rel has been removed
-                    if instruction[-1] == "wait":
-                        assembled[-1] |= 0x20
-                    elif instruction[-1] == "clear":
-                        assembled[-1] |= 0x40
-                    # All other values are the default of set without waiting
             elif instruction[0] == "set":
                 #                instr delay dst data
                 assembled.append(0b111_00000_000_00000)

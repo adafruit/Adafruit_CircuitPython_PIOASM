@@ -115,9 +115,10 @@ def test_dot_set() -> None:
 
 
 def test_irq_v1() -> None:
-    assert_assembly_fails("irq 7 next")
-    assert_assembles_to(".pio_version 1\nirq 5 next", [0b110_00000_0_0_0_11_101])
-    assert_assembles_to(".pio_version 1\nirq wait 1 prev", [0b110_00000_0_0_1_01_001])
+    assert_assembly_fails("irq next 7")
+    assert_assembly_fails(".pio_version 1\nirq next 7 rel")
+    assert_assembles_to(".pio_version 1\nirq next 5", [0b110_00000_0_0_0_11_101])
+    assert_assembles_to(".pio_version 1\nirq wait prev 1", [0b110_00000_0_0_1_01_001])
 
 
 def test_mov_v1() -> None:
@@ -125,8 +126,8 @@ def test_mov_v1() -> None:
     assert_assembly_fails(".pio_version 1\nmov osr, rxfifo[y]")
     prefix = ".pio_version 1\n.fifo putget\n"
     assert_assembly_fails(prefix + "mov osr, rxfifo[8]")
-    assert_assembles_to(prefix + "mov rxfifo[y], isr", [0b100_00000_0001_1_000])
-    assert_assembles_to(prefix + "mov osr, rxfifo[1]", [0b100_00000_1001_0_001])
+    assert_assembles_to(prefix + "mov rxfifo[y], isr", [0b100_00000_0001_0_000])
+    assert_assembles_to(prefix + "mov osr, rxfifo[1]", [0b100_00000_1001_1_001])
 
     assert_assembly_fails("mov pindirs, null", errtype=ValueError)
     assert_assembles_to(prefix + "mov pindirs, null", [0b101_00000_01100011])
@@ -134,12 +135,12 @@ def test_mov_v1() -> None:
 
 def test_wait_v1() -> None:
     assert_assembly_fails("wait 0 jmppin")
-    assert_assembly_fails("wait 0 irq 5 next")
+    assert_assembly_fails("wait 0 irq next 5")
     prefix = ".pio_version 1\n"
     assert_assembly_fails(prefix + "wait 0 jmppin +")
     assert_assembly_fails(prefix + "wait 0 jmppin + 7")
     assert_assembles_to(prefix + "wait 0 jmppin + 3", [0b001_00000_0_11_00011])
     assert_assembles_to(prefix + "wait 1 jmppin", [0b001_00000_1_11_00000])
 
-    assert_assembles_to(prefix + "wait 0 irq 5 next", [0b001_00000_0_10_11_101])
-    assert_assembles_to(prefix + "wait 1 irq 4 prev", [0b001_00000_1_10_01_100])
+    assert_assembles_to(prefix + "wait 0 irq next 5", [0b001_00000_0_10_11_101])
+    assert_assembles_to(prefix + "wait 1 irq prev 4", [0b001_00000_1_10_01_100])
