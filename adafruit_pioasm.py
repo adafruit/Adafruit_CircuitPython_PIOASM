@@ -97,7 +97,7 @@ class Program:  # pylint: disable=too-few-public-methods
             if low <= result < high:
                 return result
             raise RuntimeError(
-                f"{what} must be at least {low} and no greater than {high}, got {result}"
+                f"{what} must be at least {low} and less than {high}, got {result}"
             )
 
         def parse_rxfifo_brackets(arg, fifo_dir):
@@ -169,9 +169,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 require_version(required_version, line)
             elif words[0] == ".out":
                 require_before_instruction()
-                out_count = int_in_range(
-                    words[1], 32 if pio_version == 0 else 1, 33, ".out count"
-                )
+                out_count = int_in_range(words[1], 1, 33, ".out count")
                 auto_pull = False
 
                 idx = 2
