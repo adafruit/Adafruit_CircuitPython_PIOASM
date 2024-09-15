@@ -502,6 +502,13 @@ class Program:  # pylint: disable=too-few-public-methods
 
         self.debuginfo = (linemap, text_program) if build_debuginfo else None
 
+    @classmethod
+    def from_file(cls, filename: str, **kwargs) -> "Program":
+        """Assemble a PIO program in a file"""
+        with open(filename, "r", encoding="utf-8") as i:
+            program = i.read()
+        return cls(program, **kwargs)
+
     def print_c_program(self, name: str, qualifier: str = "const") -> None:
         """Print the program into a C program snippet"""
         if self.debuginfo is None:
