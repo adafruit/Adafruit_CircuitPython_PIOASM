@@ -110,8 +110,6 @@ encoder = IncrementalEncoder(board.GP2, board.GP3)
 
 old_value = None
 while True:
-    gen()  # pylint: disable=undefined-variable
-
     value = encoder.value
     if old_value != value:
         print("Encoder:", value)
