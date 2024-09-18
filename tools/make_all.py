@@ -2,6 +2,12 @@
 #
 # SPDX-License-Identifier: MIT
 
+"""
+Generate test cases for adafruit_pioasm, with expected results from sdk pioasm
+"""
+
+# pylint: disable=missing-function-docstring
+
 import re
 from subprocess import check_output
 
