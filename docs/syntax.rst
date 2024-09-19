@@ -52,7 +52,10 @@ Instructions
  * ``push ...``
  * ``pull ...``
  * ``mov ...``
- * ``irq ...``
+ * ``mov rxfifo[y|number], isr`` (requires PIO version 1 and compatible ``.fifo`` setting)
+ * ``mov osr, rxfifo[y|number]`` (requires PIO version 1 and compatible ``.fifo`` setting)
+ * ``irq <number> {rel}``
+ * ``irq next|prev <number>``. (requires PIO version 1) adafruit_pioasm follows sdk pioasm in placing ``next`` and ``prev`` before the IRQ number. The datasheet (version 05c4754) implies a different syntax.
  * ``set ...``
 
 Side-set and delay
@@ -75,7 +78,10 @@ is accepted. Arithmetic is not supported.
 Whitespace is not accepted in certain places, for instance within an instruction delay.
 It must be written ``[7]`` not ``[ 7 ]``.
 
-Extra
+Extra commas that would not be acceptable to sdk pioasm are not always diagnosed.
+
+Extra words in some locations that would not be acceptable to sdk pioasm are not always diagnosed.
+
 CircuitPython extensions
 ------------------------
 
