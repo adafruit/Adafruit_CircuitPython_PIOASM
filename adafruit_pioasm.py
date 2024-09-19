@@ -29,10 +29,20 @@ CONDITIONS = ["", "!x", "x--", "!y", "y--", "x!=y", "pin", "!osre"]
 IN_SOURCES = ["pins", "x", "y", "null", None, None, "isr", "osr"]
 OUT_DESTINATIONS = ["pins", "x", "y", "null", "pindirs", "pc", "isr", "exec"]
 WAIT_SOURCES = ["gpio", "pin", "irq", None]
-MOV_DESTINATIONS = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
+MOV_DESTINATIONS_V0 = ["pins", "x", "y", None, "exec", "pc", "isr", "osr"]
+MOV_DESTINATIONS_V1 = ["pins", "x", "y", "pindirs", "exec", "pc", "isr", "osr"]
 MOV_SOURCES = ["pins", "x", "y", "null", None, "status", "isr", "osr"]
 MOV_OPS = [None, "~", "::", None]
 SET_DESTINATIONS = ["pins", "x", "y", None, "pindirs", None, None, None]
+FIFO_TYPES = {
+    "auto": 0,
+    "txrx": 0,
+    "tx": 0,
+    "rx": 0,
+    "txput": 1,
+    "txget": 1,
+    "putget": 1,
+}
 
 
 class Program:  # pylint: disable=too-few-public-methods
@@ -58,18 +68,65 @@ class Program:  # pylint: disable=too-few-public-methods
         wrap = None
         wrap_target = None
         offset = -1
+        pio_version = 0
+        fifo_type = "auto"
+        mov_status_type = None
+        mov_status_n = None
+        in_count = None
+        in_shift_right = None
+        auto_push = None
+        push_threshold = None
+        out_count = None
+        out_shift_right = None
+        auto_pull = None
+        pull_threshold = None
+        set_count = None
+
+        def require_before_instruction():
+            if len(instructions) != 0:
+                raise RuntimeError(f"{words[0]} must be before first instruction")
+
+        def require_version(required_version, instruction):
+            if pio_version < required_version:
+                raise RuntimeError(
+                    f"{instruction} requires .pio_version {required_version}"
+                )
+
+        def int_in_range(arg, low, high, what, radix=0):
+            result = int(arg, radix)
+            if low <= result < high:
+                return result
+            raise RuntimeError(
+                f"{what} must be at least {low} and less than {high}, got {result}"
+            )
+
+        def parse_rxfifo_brackets(arg, fifo_dir):
+            require_version(1, line)
+            if (  # pylint: disable=consider-using-in
+                fifo_type != "putget" and fifo_type != fifo_dir
+            ):
+                raise RuntimeError(
+                    f"FIFO must be configured for '{fifo_dir}' or 'putget' for {line}"
+                )
+            if arg.endswith("[y]"):
+                return 0b1000
+            return int_in_range(arg[7:-1], 0, 8, "rxfifo index")
+
         for i, line in enumerate(text_program.split("\n")):
-            line = line.strip()
+            line = line.split(";")[0].strip()
             if not line:
                 continue
-            if ";" in line:
-                line = line.split(";")[0].strip()
+            words = line.split()
             if line.startswith(".program"):
                 if program_name:
                     raise RuntimeError("Multiple programs not supported")
                 program_name = line.split()[1]
+            elif line.startswith(".pio_version"):
+                require_before_instruction()
+                pio_version = int_in_range(words[1], 0, 2, ".pio_version")
             elif line.startswith(".origin"):
-                offset = int(line.split()[1], 0)
+                require_before_instruction()
+                offset = int_in_range(words[1], 0, 32, ".origin")
             elif line.startswith(".wrap_target"):
                 wrap_target = len(instructions)
             elif line.startswith(".wrap"):
@@ -79,6 +136,87 @@ class Program:  # pylint: disable=too-few-public-methods
             elif line.startswith(".side_set"):
                 sideset_count = int(line.split()[1], 0)
                 sideset_enable = "opt" in line
+            elif line.startswith(".fifo"):
+                require_before_instruction()
+                fifo_type = line.split()[1]
+                required_version = FIFO_TYPES.get(fifo_type)
+                if required_version is None:
+                    raise RuntimeError(f"Invalid fifo type {fifo_type}")
+                require_version(required_version, line)
+            elif line.startswith(".mov_status"):
+                require_before_instruction()
+                required_version = 0
+                mov_status_n = 0
+                mov_status_type = words[1]
+                if words[1] in ("txfifo", "rxfifo"):
+                    if words[2] != "<":
+                        raise RuntimeError(f"Invalid {line}")
+                    mov_status_n = int_in_range(words[3], 0, 32, words[1])
+                elif words[1] == "irq":
+                    required_version = 1
+                    idx = 2
+                    if words[idx] == "next":
+                        mov_status_n = 0x10
+                        idx += 1
+                    elif words[idx] == "prev":
+                        mov_status_n = 0x8
+                        idx += 1
+                    else:
+                        mov_status_n = 0
+                    if words[idx] != "set":
+                        raise RuntimeError(f"Invalid {line})")
+                    mov_status_n |= int_in_range(words[idx + 1], 0, 8, "mov_status irq")
+                require_version(required_version, line)
+            elif words[0] == ".out":
+                require_before_instruction()
+                out_count = int_in_range(words[1], 1, 33, ".out count")
+                auto_pull = False
+
+                idx = 2
+                if idx < len(words) and words[idx] == "left":
+                    out_shift_right = False
+                    idx += 1
+                elif idx < len(words) and words[idx] == "right":
+                    out_shift_right = True
+                    idx += 1
+
+                if idx < len(words) and words[idx] == "auto":
+                    auto_pull = True
+                    idx += 1
+
+                if idx < len(words):
+                    pull_threshold = int_in_range(words[idx], 1, 33, ".out threshold")
+                    idx += 1
+
+            elif words[0] == ".in":
+                require_before_instruction()
+                in_count = int_in_range(
+                    words[1], 32 if pio_version == 0 else 1, 33, ".in count"
+                )
+                auto_push = False
+
+                idx = 2
+                if idx < len(words) and words[idx] == "left":
+                    in_shift_right = False
+                    idx += 1
+                elif idx < len(words) and words[idx] == "right":
+                    in_shift_right = True
+                    idx += 1
+
+                if idx < len(words) and words[idx] == "auto":
+                    auto_push = True
+                    idx += 1
+
+                if idx < len(words):
+                    push_threshold = int_in_range(words[idx], 1, 33, ".in threshold")
+                    idx += 1
+
+            elif words[0] == ".set":
+                require_before_instruction()
+                set_count = int_in_range(
+                    words[1], 5 if pio_version == 0 else 1, 6, ".set count"
+                )
+
             elif line.endswith(":"):
                 label = line[:-1]
                 if label in labels:
@@ -89,12 +227,21 @@ class Program:  # pylint: disable=too-few-public-methods
                 instructions.append(line)
                 linemap.append(i)
 
+        if pio_version >= 1:
+            mov_destinations = MOV_DESTINATIONS_V1
+        else:
+            mov_destinations = MOV_DESTINATIONS_V0
+
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
-        for line in instructions:
+        for line in instructions:  # pylint: disable=too-many-nested-blocks
             instruction = splitter(line.strip())
             delay = 0
-            if len(instruction) > 1 and instruction[-1].endswith("]"):  # Delay
+            if (
+                len(instruction) > 1
+                and instruction[-1].startswith("[")
+                and instruction[-1].endswith("]")
+            ):  # Delay
                 delay = int(instruction[-1].strip("[]"), 0)
                 if delay < 0:
                     raise RuntimeError("Delay negative:", delay)
@@ -138,16 +285,46 @@ class Program:  # pylint: disable=too-few-public-methods
                 #                instr delay p sr index
                 assembled.append(0b001_00000_0_00_00000)
                 polarity = int(instruction[1], 0)
+                source = instruction[2]
                 if not 0 <= polarity <= 1:
                     raise RuntimeError("Invalid polarity")
                 assembled[-1] |= polarity << 7
-                assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
-                num = int(instruction[3], 0)
-                if not 0 <= num <= 31:
-                    raise RuntimeError("Wait num out of range")
-                assembled[-1] |= num
-                if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
+                if instruction[2] == "jmppin":
+                    require_version(1, "wait jmppin")
+                    num = 0
+                    if len(instruction) > 3:
+                        if len(instruction) < 5 or instruction[3] != "+":
+                            raise RuntimeError("invalid wait jmppin")
+                        num = int_in_range(instruction[4], 0, 4, "wait jmppin offset")
+                    assembled[-1] |= num
+                    assembled[-1] |= 0b11 << 5  # JMPPIN wait source
+                else:
+                    idx = 3
+                    assembled[-1] |= WAIT_SOURCES.index(instruction[2]) << 5
+                    if source == "irq":
+                        if instruction[idx] == "next":
+                            require_version(1, "wait irq next")
+                            assembled[-1] |= 0b11000
+                            idx += 1
+                        elif instruction[idx] == "prev":
+                            require_version(1, "wait irq prev")
+                            assembled[-1] |= 0b01000
+                            idx += 1
+
+                        limit = 8
+                        # The flag index is decoded in the same way as the IRQ
+                        # index field, decoding down from the two MSBs
+                        if instruction[-1] == "rel":
+                            if assembled[-1] & 0b11000:
+                                raise RuntimeError("cannot use next/prev with rel")
+                            assembled[-1] |= 0b10000
+                    else:
+                        limit = 32
+                    num = int_in_range(
+                        instruction[idx], 0, limit, "wait {instruction[2]}"
+                    )
+                    assembled[-1] |= num
+
             elif instruction[0] == "in":
                 #                instr delay src count
                 assembled.append(0b010_00000_000_00000)
@@ -185,43 +362,72 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled[-1] |= 0x40
             elif instruction[0] == "mov":
                 #                instr delay dst op src
-                assembled.append(0b101_00000_000_00_000)
-                assembled[-1] |= MOV_DESTINATIONS.index(instruction[1]) << 5
-                source = instruction[-1]
-                source_split = mov_splitter(source)
-                if len(source_split) == 1:
-                    try:
-                        assembled[-1] |= MOV_SOURCES.index(source)
-                    except ValueError as exc:
-                        raise ValueError(f"Invalid mov source '{source}'") from exc
+                if instruction[1].startswith("rxfifo["):  # mov rxfifo[], isr
+                    assembled.append(0b100_00000_0001_1_000)
+                    if instruction[2] != "isr":
+                        raise ValueError("mov rxfifo[] source must be isr")
+                    assembled[-1] ^= parse_rxfifo_brackets(instruction[1], "txput")
+                elif instruction[2].startswith("rxfifo["):  # mov osr, rxfifo[]
+                    assembled.append(0b100_00000_1001_1_000)
+                    if instruction[1] != "osr":
+                        raise ValueError("mov ,rxfifo[] target must be osr")
+                    assembled[-1] ^= parse_rxfifo_brackets(instruction[2], "txget")
                 else:
-                    assembled[-1] |= MOV_SOURCES.index(source_split[1])
-                    if source[:1] == "!":
-                        assembled[-1] |= 0x08
-                    elif source[:1] == "~":
-                        assembled[-1] |= 0x08
-                    elif source[:2] == "::":
-                        assembled[-1] |= 0x10
+                    assembled.append(0b101_00000_000_00_000)
+                    assembled[-1] |= mov_destinations.index(instruction[1]) << 5
+                    source = instruction[-1]
+                    source_split = mov_splitter(source)
+                    if len(source_split) == 1:
+                        try:
+                            assembled[-1] |= MOV_SOURCES.index(source)
+                        except ValueError as exc:
+                            raise ValueError(f"Invalid mov source '{source}'") from exc
                     else:
-                        raise RuntimeError("Invalid mov operator:", source[:1])
-                if len(instruction) > 3:
-                    assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
+                        assembled[-1] |= MOV_SOURCES.index(source_split[1])
+                        if source[:1] == "!":
+                            assembled[-1] |= 0x08
+                        elif source[:1] == "~":
+                            assembled[-1] |= 0x08
+                        elif source[:2] == "::":
+                            assembled[-1] |= 0x10
+                        else:
+                            raise RuntimeError("Invalid mov operator:", source[:1])
+                    if len(instruction) > 3:
+                        assembled[-1] |= MOV_OPS.index(instruction[-2]) << 3
             elif instruction[0] == "irq":
-                #                instr delay z c w index
+                #                instr delay z c w tp/idx
                 assembled.append(0b110_00000_0_0_0_00000)
+
+                irq_type = 0
+                idx = 1
+                if instruction[idx] == "wait":
+                    assembled[-1] |= 0x20
+                    idx += 1
+                elif instruction[idx] == "clear":
+                    assembled[-1] |= 0x40
+                    idx += 1
+
+                if instruction[idx] == "prev":
+                    irq_type = 1
+                    require_version(1, "irq prev")
+                    idx += 1
+                elif instruction[idx] == "next":
+                    irq_type = 3
+                    require_version(1, "irq next")
+                    idx += 1
+
                 if instruction[-1] == "rel":
-                    assembled[-1] |= 0x10  # Set the high bit of the irq value
+                    if irq_type != 0:
+                        raise RuntimeError("cannot use next/prev with rel")
+                    irq_type = 2
                     instruction.pop()
-                num = int(instruction[-1], 0)
-                if not 0 <= num <= 7:
-                    raise RuntimeError("Interrupt index out of range")
+
+                assembled[-1] |= irq_type << 3
+
+                num = int_in_range(instruction[idx], 0, 8, "irq index")
                 assembled[-1] |= num
-                if len(instruction) == 3:  # after rel has been removed
-                    if instruction[1] == "wait":
-                        assembled[-1] |= 0x20
-                    elif instruction[1] == "clear":
-                        assembled[-1] |= 0x40
-                    # All other values are the default of set without waiting
+                instruction.pop()
+
             elif instruction[0] == "set":
                 #                instr delay dst data
                 assembled.append(0b111_00000_000_00000)
@@ -247,6 +453,9 @@ class Program:  # pylint: disable=too-few-public-methods
         if offset != -1:
             self.pio_kwargs["offset"] = offset
 
+        if pio_version != 0:
+            self.pio_kwargs["pio_version"] = pio_version
+
         if sideset_count != 0:
             self.pio_kwargs["sideset_pin_count"] = sideset_count
 
@@ -255,9 +464,50 @@ class Program:  # pylint: disable=too-few-public-methods
         if wrap_target is not None:
             self.pio_kwargs["wrap_target"] = wrap_target
 
+        if fifo_type != "auto":
+            self.pio_kwargs["fifo_type"] = fifo_type
+
+        if mov_status_type is not None:
+            self.pio_kwargs["mov_status_type"] = mov_status_type
+            self.pio_kwargs["mov_status_n"] = mov_status_n
+
+        if set_count is not None:
+            self.pio_kwargs["set_pin_count"] = set_count
+
+        if out_count not in (None, 32):
+            self.pio_kwargs["out_pin_count"] = out_count
+
+        if out_shift_right is not None:
+            self.pio_kwargs["out_shift_right"] = out_shift_right
+
+        if auto_pull is not None:
+            self.pio_kwargs["auto_pull"] = auto_pull
+
+        if pull_threshold is not None:
+            self.pio_kwargs["pull_threshold"] = pull_threshold
+
+        if in_count not in (None, 32):
+            self.pio_kwargs["in_pin_count"] = in_count
+
+        if in_shift_right is not None:
+            self.pio_kwargs["in_shift_right"] = in_shift_right
+
+        if auto_push is not None:
+            self.pio_kwargs["auto_push"] = auto_push
+
+        if push_threshold is not None:
+            self.pio_kwargs["push_threshold"] = push_threshold
+
         self.assembled = array.array("H", assembled)
 
         self.debuginfo = (linemap, text_program) if build_debuginfo else None
+
+    @classmethod
+    def from_file(cls, filename: str, **kwargs) -> "Program":
+        """Assemble a PIO program in a file"""
+        with open(filename, "r", encoding="utf-8") as i:
+            program = i.read()
+        return cls(program, **kwargs)
 
     def print_c_program(self, name: str, qualifier: str = "const") -> None:
         """Print the program into a C program snippet"""

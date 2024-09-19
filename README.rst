@@ -55,6 +55,11 @@ To install in a virtual environment in your current project:
     source .venv/bin/activate
     pip3 install adafruit-circuitpython-pioasm
 
+CircuitPython Extensions
+========================
+
+* ``.fifo auto``: By default, CircuitPython joins the TX and RX fifos if a PIO program only receives or transmits. The ``.fifo auto`` directive makes this explicit.
+
 Usage Example
 =============
 

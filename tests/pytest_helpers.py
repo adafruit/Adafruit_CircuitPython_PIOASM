@@ -45,4 +45,6 @@ def assert_assembly_fails(
 
 def assert_pio_kwargs(source: str, **kw: Any) -> None:
     program = adafruit_pioasm.Program(source)
-    assert kw == program.pio_kwargs
+    assert (
+        kw == program.pio_kwargs
+    ), f"Assembling {source!r}: Expected {kw}, got {program.pio_kwargs}"
