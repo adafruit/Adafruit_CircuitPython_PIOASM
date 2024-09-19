@@ -15,6 +15,12 @@ Table of Contents
     examples
 
 .. toctree::
+    :caption: Syntax
+    :maxdepth: 3
+
+    syntax
+
+.. toctree::
     :caption: API Reference
     :maxdepth: 3
 
