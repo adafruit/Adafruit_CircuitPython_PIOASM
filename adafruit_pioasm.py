@@ -12,7 +12,7 @@ Simple assembler to convert pioasm to bytes
 """
 
 try:
-    from typing import List, MutableSequence
+    from typing import List, Sequence, Any
 except ImportError:
     pass
 
@@ -55,12 +55,20 @@ class Program:  # pylint: disable=too-few-public-methods
 
     """
 
+    assembled: array.array
+    """The assembled PIO program instructions"""
+    public_labels: dict[str, int]
+    """The offset of any labels delcared public"""
+    pio_kwargs: dict[str, Any]
+    """Settings from assembler directives to pass to the StateMachine constructor"""
+
     def __init__(self, text_program: str, *, build_debuginfo: bool = False) -> None:
         """Converts pioasm text to encoded instruction bytes"""
         # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         assembled: List[int] = []
         program_name = None
         labels = {}
+        public_labels = {}
         linemap = []
         instructions: List[str] = []
         sideset_count = 0
@@ -219,6 +227,9 @@ class Program:  # pylint: disable=too-few-public-methods
 
             elif line.endswith(":"):
                 label = line[:-1]
+                if line.startswith("public "):
+                    label = label[7:]
+                    public_labels[label] = len(instructions)
                 if label in labels:
                     raise SyntaxError(f"Duplicate label {repr(label)}")
                 labels[label] = len(instructions)
@@ -227,6 +238,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 instructions.append(line)
                 linemap.append(i)
 
+        mov_destinations: Sequence[str | None]
         if pio_version >= 1:
             mov_destinations = MOV_DESTINATIONS_V1
         else:
@@ -502,6 +514,8 @@ class Program:  # pylint: disable=too-few-public-methods
 
         self.debuginfo = (linemap, text_program) if build_debuginfo else None
 
+        self.public_labels = public_labels
+
     @classmethod
     def from_file(cls, filename: str, **kwargs) -> "Program":
         """Assemble a PIO program in a file"""
@@ -557,7 +571,7 @@ class Program:  # pylint: disable=too-few-public-methods
         print()
 
 
-def assemble(program_text: str) -> MutableSequence[int]:
+def assemble(program_text: str) -> array.array:
     """Converts pioasm text to encoded instruction bytes
 
     In new code, prefer to use the `Program` class so that the extra arguments
