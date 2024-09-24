@@ -58,7 +58,7 @@ class Program:  # pylint: disable=too-few-public-methods
     assembled: array.array
     """The assembled PIO program instructions"""
     public_labels: dict[str, int]
-    """The offset of any labels delcared public"""
+    """The offset of any labels declared public"""
     pio_kwargs: dict[str, Any]
     """Settings from assembler directives to pass to the StateMachine constructor"""
 
