@@ -73,6 +73,7 @@ class Program:  # pylint: disable=too-few-public-methods
         instructions: List[str] = []
         sideset_count = 0
         sideset_enable = 0
+        sideset_pindirs = False
         wrap = None
         wrap_target = None
         offset = -1
@@ -144,6 +145,7 @@ class Program:  # pylint: disable=too-few-public-methods
             elif line.startswith(".side_set"):
                 sideset_count = int(line.split()[1], 0)
                 sideset_enable = "opt" in line
+                sideset_pindirs = "pindirs" in line
             elif line.startswith(".fifo"):
                 require_before_instruction()
                 fifo_type = line.split()[1]
@@ -470,6 +472,8 @@ class Program:  # pylint: disable=too-few-public-methods
 
         if sideset_count != 0:
             self.pio_kwargs["sideset_pin_count"] = sideset_count
+        if sideset_pindirs:
+            self.pio_kwargs["sideset_pindirs"] = sideset_pindirs
 
         if wrap is not None:
             self.pio_kwargs["wrap"] = wrap
