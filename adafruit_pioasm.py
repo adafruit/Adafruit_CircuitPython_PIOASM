@@ -545,7 +545,7 @@ class Program:  # pylint: disable=too-few-public-methods
         sideset_pin_count = self.pio_kwargs.get("sideset_pin_count", 0)
         print(f"{qualifier} int {name}_sideset_pin_count = {sideset_pin_count};")
         print(
-            f"{qualifier} bool {name}_sideset_enable = {self.pio_kwargs['sideset_enable']};"
+            f"{qualifier} bool {name}_sideset_enable = {+self.pio_kwargs['sideset_enable']};"
         )
         print(f"{qualifier} uint16_t {name}[] = " + "{")
         last_line = 0
