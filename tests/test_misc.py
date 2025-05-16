@@ -28,12 +28,8 @@ def test_invalid_sideset() -> None:
 
 
 def test_invalid_delay() -> None:
-    assert_assembly_fails(
-        "[5]", match=r"Unknown instruction: \[5\]", errtype=RuntimeError
-    )
+    assert_assembly_fails("[5]", match=r"Unknown instruction: \[5\]", errtype=RuntimeError)
 
 
 def test_invalid_instruction() -> None:
-    assert_assembly_fails(
-        "bad", match=r"Unknown instruction: bad", errtype=RuntimeError
-    )
+    assert_assembly_fails("bad", match=r"Unknown instruction: bad", errtype=RuntimeError)

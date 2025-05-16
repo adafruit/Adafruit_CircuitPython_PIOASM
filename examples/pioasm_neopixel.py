@@ -3,9 +3,11 @@
 # SPDX-License-Identifier: MIT
 
 import time
-import rp2pio
+
 import board
 import microcontroller
+import rp2pio
+
 import adafruit_pioasm
 
 # NeoPixels are 800khz bit streams. We are choosing zeros as <312ns hi, 936 lo>

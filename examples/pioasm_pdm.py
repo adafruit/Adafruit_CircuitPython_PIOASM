@@ -4,9 +4,11 @@
 
 import array
 import time
+
 import board
 import digitalio
 import rp2pio
+
 import adafruit_pioasm
 
 trigger = digitalio.DigitalInOut(board.D4)

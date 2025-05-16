@@ -8,12 +8,11 @@
 
 import array
 
+import adafruit_ticks
 import board
 import rp2pio
-import adafruit_ticks
 import ulab.numpy as np
 from adafruit_motor import servo
-
 
 import adafruit_pioasm
 
@@ -73,7 +72,7 @@ class PulseItem:
     def _recalculate(self):
         self._turn_on = self._get_turn_on()
         self._turn_off = self._get_turn_off()
-        self._group._maybe_update()  # pylint: disable=protected-access
+        self._group._maybe_update()
 
     def _get_turn_on(self):
         maxval = self._maxval
@@ -104,7 +103,7 @@ class PulseGroup:
         maxval=65535,
         stagger=False,
         auto_update=True,
-    ):  # pylint: disable=too-many-arguments
+    ):
         """Create a pulse group with the given characteristics"""
         self._frequency = round(1 / period)
         pio_frequency = round((1 + maxval) * _cycle_count / period)
@@ -149,9 +148,9 @@ class PulseGroup:
         changes = {0: [0, 0]}
 
         for i in self._items:
-            turn_on = i._turn_on  # pylint: disable=protected-access
-            turn_off = i._turn_off  # pylint: disable=protected-access
-            mask = i._mask  # pylint: disable=protected-access
+            turn_on = i._turn_on
+            turn_off = i._turn_off
+            mask = i._mask
 
             if turn_on is not None:
                 this_change = changes.get(turn_on)

@@ -60,12 +60,8 @@ def test_out_delay_with_sideset() -> None:
 
 
 def test_out_bad_destination() -> None:
-    assert_assembly_fails(
-        "out bad, 17", match="Invalid out destination 'bad'", errtype=ValueError
-    )
+    assert_assembly_fails("out bad, 17", match="Invalid out destination 'bad'", errtype=ValueError)
 
 
 def test_out_bad_bitcount() -> None:
-    assert_assembly_fails(
-        "out pins, 0", match="Count out of range", errtype=RuntimeError
-    )
+    assert_assembly_fails("out pins, 0", match="Count out of range", errtype=RuntimeError)

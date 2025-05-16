@@ -5,8 +5,10 @@
 # Adapted from the example https://github.com/raspberrypi/pico-examples/tree/master/pio/hello_pio
 
 import time
+
 import board
 import rp2pio
+
 import adafruit_pioasm
 
 hello = """

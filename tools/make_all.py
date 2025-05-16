@@ -6,14 +6,10 @@
 Generate test cases for adafruit_pioasm, with expected results from sdk pioasm
 """
 
-# pylint: disable=missing-function-docstring
-
 import re
 from subprocess import check_output
 
-PIOASM = (
-    "/home/jepler/src/circuitpython/ports/raspberrypi/sdk/tools/pioasm/build/pioasm"
-)
+PIOASM = "/home/jepler/src/circuitpython/ports/raspberrypi/sdk/tools/pioasm/build/pioasm"
 
 
 def assemble_one_instruction(instruction_in):
@@ -31,9 +27,7 @@ def _assemble_one_instruction(instruction_in, fifo="putget"):
         {instruction_in}
         {nops}
         """
-    output = check_output(
-        [PIOASM, "/dev/stdin", "/dev/stdout"], input=program, encoding="utf-8"
-    )
+    output = check_output([PIOASM, "/dev/stdin", "/dev/stdout"], input=program, encoding="utf-8")
     return int(re.search("0x[0-9a-f]{4}", output).group(0), 16)
 
 
@@ -124,7 +118,6 @@ if __name__ == "__main__":
 # SPDX-FileCopyrightText: 2024 Jeff Epler, written for Adafruit Industries
 #
 # SPDX-License-Identifier: MIT
-# pylint: disable=too-many-lines
 # fmt: off
 """
     )

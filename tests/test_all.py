@@ -2,10 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 
+import all_pio_instructions
 import pytest
 from pytest_helpers import assert_assembles_to
-
-import all_pio_instructions
 
 
 def _assert_one(expected, instruction_in, fifo="putget"):

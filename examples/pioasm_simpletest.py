@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 import time
-import rp2pio
+
 import board
+import rp2pio
+
 import adafruit_pioasm
 
 squarewave = """

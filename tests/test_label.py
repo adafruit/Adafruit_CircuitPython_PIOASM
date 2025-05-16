@@ -7,6 +7,7 @@ Tests out
 """
 
 from pytest_helpers import assert_assembly_fails
+
 import adafruit_pioasm
 
 
@@ -28,9 +29,7 @@ def test_label() -> None:
         "public label1:\n",
         "nop\n",
     ]
-    assert_assembly_fails(
-        "\n".join(source), match="Duplicate label", errtype=SyntaxError
-    )
+    assert_assembly_fails("\n".join(source), match="Duplicate label", errtype=SyntaxError)
 
     source = [
         "label1:\n",
@@ -38,9 +37,7 @@ def test_label() -> None:
         "label1:\n",
         "    nop\n",
     ]
-    assert_assembly_fails(
-        "\n".join(source), match="Duplicate label", errtype=SyntaxError
-    )
+    assert_assembly_fails("\n".join(source), match="Duplicate label", errtype=SyntaxError)
 
     source = [
         "public label1:\n",
@@ -48,9 +45,7 @@ def test_label() -> None:
         "label1:\n",
         "    nop\n",
     ]
-    assert_assembly_fails(
-        "\n".join(source), match="Duplicate label", errtype=SyntaxError
-    )
+    assert_assembly_fails("\n".join(source), match="Duplicate label", errtype=SyntaxError)
 
     source = [
         "public label1:\n",
@@ -58,6 +53,4 @@ def test_label() -> None:
         "public label1:\n",
         "    nop\n",
     ]
-    assert_assembly_fails(
-        "\n".join(source), match="Duplicate label", errtype=SyntaxError
-    )
+    assert_assembly_fails("\n".join(source), match="Duplicate label", errtype=SyntaxError)

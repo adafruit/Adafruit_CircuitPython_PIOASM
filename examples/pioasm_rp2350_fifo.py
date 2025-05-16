@@ -16,8 +16,10 @@ The LED will blink in several patterns depending on the values loaded in the 'rx
 
 import array
 import time
+
 import board
 import rp2pio
+
 import adafruit_pioasm
 
 program = adafruit_pioasm.Program(

@@ -11,9 +11,7 @@ from pytest_helpers import assert_assembles_to, assert_assembly_fails
 
 def test_mov_non_happy() -> None:
     # non happy path
-    assert_assembly_fails(
-        "mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError
-    )
+    assert_assembly_fails("mov x, blah", match="Invalid mov source 'blah'", errtype=ValueError)
 
 
 def test_mov_invert() -> None:

@@ -36,12 +36,14 @@ Wiring:
  * Pico GP16 to LED matrix 14 (COM1)
 """
 
+import array
 import asyncio
 import random
-import array
+
 import board
 import rp2pio
 from ulab import numpy as np
+
 import adafruit_pioasm
 
 _pio_source = """
@@ -130,20 +132,16 @@ def make_digit_wt(v):
 
 
 class LedFader:
-    def __init__(
-        self, first_pin, pin_count, cathode_weights, anode_weights, levels=64
-    ):  # pylint: disable=too-many-arguments
+    def __init__(self, first_pin, pin_count, cathode_weights, anode_weights, levels=64):
         self._cathode_weights = cathode_weights
         self._anode_weights = anode_weights
-        self._stream = array.array("L", [0, 0, 1]) * (
-            1 + len(cathode_weights) * len(anode_weights)
-        )
+        self._stream = array.array("L", [0, 0, 1]) * (1 + len(cathode_weights) * len(anode_weights))
         self._levels = levels
         self._max_count = levels * len(self)
         self._total = len(self)
 
         program = adafruit_pioasm.Program(_pio_source.format(n=pin_count))
-        self._sm = rp2pio.StateMachine(  # pylint: disable=too-many-arguments
+        self._sm = rp2pio.StateMachine(
             program.assembled,
             frequency=125_000_000,
             first_out_pin=first_pin,
@@ -152,9 +150,7 @@ class LedFader:
             pull_threshold=14,
             **program.pio_kwargs,
         )
-        print(
-            f"Note: approximate refresh rate {self._sm.frequency / self._max_count:.0f}Hz"
-        )
+        print(f"Note: approximate refresh rate {self._sm.frequency / self._max_count:.0f}Hz")
         self._sm.background_write(loop=self._stream)
 
     def __enter__(self):

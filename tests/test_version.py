@@ -6,7 +6,7 @@
 Tests version dependent instructions
 """
 
-from pytest_helpers import assert_pio_kwargs, assert_assembly_fails, assert_assembles_to
+from pytest_helpers import assert_assembles_to, assert_assembly_fails, assert_pio_kwargs
 
 
 def test_version() -> None:

@@ -6,8 +6,10 @@
 # https://github.com/micropython/micropython/pull/6894/files
 
 import array
-import rp2pio
+
 import board
+import rp2pio
+
 import adafruit_pioasm
 
 

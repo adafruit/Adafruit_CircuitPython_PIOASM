@@ -6,8 +6,10 @@
 
 import array
 import time
+
 import board
 import rp2pio
+
 import adafruit_pioasm
 
 blink = adafruit_pioasm.assemble(
