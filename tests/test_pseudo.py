@@ -6,7 +6,7 @@
 Tests pseudo-ops
 """
 
-from pytest_helpers import assert_pio_kwargs, assert_assembly_fails
+from pytest_helpers import assert_assembly_fails, assert_pio_kwargs
 
 
 def test_offset() -> None:

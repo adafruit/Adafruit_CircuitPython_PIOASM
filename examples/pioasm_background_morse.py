@@ -19,8 +19,10 @@ https://en.wikipedia.org/wiki/Morse_code
 
 import array
 import time
+
 from board import LED
 from rp2pio import StateMachine
+
 from adafruit_pioasm import Program
 
 # This program turns the LED on or off depending on the first bit of the value,
@@ -73,7 +75,7 @@ sm = StateMachine(
 )
 
 # To simply repeat 'TEST' forever, change to 'if True':
-if False:  # pylint: disable=using-constant-test
+if False:
     print("Sending out TEST forever", end="")
     sm.background_write(loop=TEST)
     while True:

@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Jeff Epler, written for Adafruit Industries
 #
 # SPDX-License-Identifier: MIT
-# pylint: disable=too-many-lines
 # fmt: off
 
 all_instruction = {

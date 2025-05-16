@@ -39,8 +39,10 @@ Wiring:
 
 import array
 import time
+
 import board
 import rp2pio
+
 import adafruit_pioasm
 
 _program = adafruit_pioasm.Program(

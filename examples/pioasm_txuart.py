@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import rp2pio
+
 import adafruit_pioasm
 
 code = adafruit_pioasm.Program(

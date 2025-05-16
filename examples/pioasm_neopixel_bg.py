@@ -23,8 +23,10 @@ pattern across all the LEDs.
 """
 
 import struct
+
 import adafruit_pixelbuf
 from rp2pio import StateMachine
+
 from adafruit_pioasm import Program
 
 # Pixel color order constants
@@ -66,12 +68,8 @@ wait_reset:
 )
 
 
-class NeoPixelBackground(  # pylint: disable=too-few-public-methods
-    adafruit_pixelbuf.PixelBuf
-):
-    def __init__(
-        self, pin, n, *, bpp=3, brightness=1.0, auto_write=True, pixel_order=None
-    ):
+class NeoPixelBackground(adafruit_pixelbuf.PixelBuf):
+    def __init__(self, pin, n, *, bpp=3, brightness=1.0, auto_write=True, pixel_order=None):
         if not pixel_order:
             pixel_order = GRB if bpp == 3 else GRBW
         elif isinstance(pixel_order, tuple):

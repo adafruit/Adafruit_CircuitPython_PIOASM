@@ -12,7 +12,7 @@ Simple assembler to convert pioasm to bytes
 """
 
 try:
-    from typing import List, Sequence, Any
+    from typing import Any, List, Sequence
 except ImportError:
     pass
 
@@ -45,7 +45,7 @@ FIFO_TYPES = {
 }
 
 
-class Program:  # pylint: disable=too-few-public-methods
+class Program:
     """Encapsulates a program's instruction stream and configuration flags
 
     Example::
@@ -64,7 +64,6 @@ class Program:  # pylint: disable=too-few-public-methods
 
     def __init__(self, text_program: str, *, build_debuginfo: bool = False) -> None:
         """Converts pioasm text to encoded instruction bytes"""
-        # pylint: disable=too-many-branches,too-many-statements,too-many-locals
         assembled: List[int] = []
         program_name = None
         labels = {}
@@ -97,23 +96,17 @@ class Program:  # pylint: disable=too-few-public-methods
 
         def require_version(required_version, instruction):
             if pio_version < required_version:
-                raise RuntimeError(
-                    f"{instruction} requires .pio_version {required_version}"
-                )
+                raise RuntimeError(f"{instruction} requires .pio_version {required_version}")
 
         def int_in_range(arg, low, high, what, radix=0):
             result = int(arg, radix)
             if low <= result < high:
                 return result
-            raise RuntimeError(
-                f"{what} must be at least {low} and less than {high}, got {result}"
-            )
+            raise RuntimeError(f"{what} must be at least {low} and less than {high}, got {result}")
 
         def parse_rxfifo_brackets(arg, fifo_dir):
             require_version(1, line)
-            if (  # pylint: disable=consider-using-in
-                fifo_type != "putget" and fifo_type != fifo_dir
-            ):
+            if fifo_type != "putget" and fifo_type != fifo_dir:
                 raise RuntimeError(
                     f"FIFO must be configured for '{fifo_dir}' or 'putget' for {line}"
                 )
@@ -158,7 +151,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 required_version = 0
                 mov_status_n = 0
                 mov_status_type = words[1]
-                if words[1] in ("txfifo", "rxfifo"):
+                if words[1] in {"txfifo", "rxfifo"}:
                     if words[2] != "<":
                         raise RuntimeError(f"Invalid {line}")
                     mov_status_n = int_in_range(words[3], 0, 32, words[1])
@@ -200,9 +193,7 @@ class Program:  # pylint: disable=too-few-public-methods
 
             elif words[0] == ".in":
                 require_before_instruction()
-                in_count = int_in_range(
-                    words[1], 32 if pio_version == 0 else 1, 33, ".in count"
-                )
+                in_count = int_in_range(words[1], 32 if pio_version == 0 else 1, 33, ".in count")
                 auto_push = False
 
                 idx = 2
@@ -223,9 +214,7 @@ class Program:  # pylint: disable=too-few-public-methods
 
             elif words[0] == ".set":
                 require_before_instruction()
-                set_count = int_in_range(
-                    words[1], 5 if pio_version == 0 else 1, 6, ".set count"
-                )
+                set_count = int_in_range(words[1], 5 if pio_version == 0 else 1, 6, ".set count")
 
             elif line.endswith(":"):
                 label = line[:-1]
@@ -248,7 +237,7 @@ class Program:  # pylint: disable=too-few-public-methods
 
         max_delay = 2 ** (5 - sideset_count - sideset_enable) - 1
         assembled = []
-        for line in instructions:  # pylint: disable=too-many-nested-blocks
+        for line in instructions:
             instruction = splitter(line.strip())
             delay = 0
             if (
@@ -291,9 +280,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     try:
                         assembled[-1] |= CONDITIONS.index(instruction[1]) << 5
                     except ValueError as exc:
-                        raise ValueError(
-                            f"Invalid jmp condition '{instruction[1]}'"
-                        ) from exc
+                        raise ValueError(f"Invalid jmp condition '{instruction[1]}'") from exc
 
             elif instruction[0] == "wait":
                 #                instr delay p sr index
@@ -334,9 +321,7 @@ class Program:  # pylint: disable=too-few-public-methods
                             assembled[-1] |= 0b10000
                     else:
                         limit = 32
-                    num = int_in_range(
-                        instruction[idx], 0, limit, "wait {instruction[2]}"
-                    )
+                    num = int_in_range(instruction[idx], 0, limit, "wait {instruction[2]}")
                     assembled[-1] |= num
 
             elif instruction[0] == "in":
@@ -358,9 +343,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 try:
                     assembled[-1] |= OUT_DESTINATIONS.index(destination) << 5
                 except ValueError as exc:
-                    raise ValueError(
-                        f"Invalid out destination '{destination}'"
-                    ) from exc
+                    raise ValueError(f"Invalid out destination '{destination}'") from exc
                 count = int(instruction[-1], 0)
                 if not 1 <= count <= 32:
                     raise RuntimeError("Count out of range")
@@ -372,7 +355,7 @@ class Program:  # pylint: disable=too-few-public-methods
                     assembled[-1] |= 0x80
                 if instruction[-1] == "block" or not instruction[-1].endswith("block"):
                     assembled[-1] |= 0x20
-                if len(instruction) > 1 and instruction[1] in ("ifempty", "iffull"):
+                if len(instruction) > 1 and instruction[1] in {"ifempty", "iffull"}:
                     assembled[-1] |= 0x40
             elif instruction[0] == "mov":
                 #                instr delay dst op src
@@ -448,9 +431,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 try:
                     assembled[-1] |= SET_DESTINATIONS.index(instruction[1]) << 5
                 except ValueError as exc:
-                    raise ValueError(
-                        f"Invalid set destination '{instruction[1]}'"
-                    ) from exc
+                    raise ValueError(f"Invalid set destination '{instruction[1]}'") from exc
                 value = int(instruction[-1], 0)
                 if not 0 <= value <= 31:
                     raise RuntimeError("Set value out of range")
@@ -490,7 +471,7 @@ class Program:  # pylint: disable=too-few-public-methods
         if set_count is not None:
             self.pio_kwargs["set_pin_count"] = set_count
 
-        if out_count not in (None, 32):
+        if out_count not in {None, 32}:
             self.pio_kwargs["out_pin_count"] = out_count
 
         if out_shift_right is not None:
@@ -502,7 +483,7 @@ class Program:  # pylint: disable=too-few-public-methods
         if pull_threshold is not None:
             self.pio_kwargs["pull_threshold"] = pull_threshold
 
-        if in_count not in (None, 32):
+        if in_count not in {None, 32}:
             self.pio_kwargs["in_pin_count"] = in_count
 
         if in_shift_right is not None:
@@ -523,7 +504,7 @@ class Program:  # pylint: disable=too-few-public-methods
     @classmethod
     def from_file(cls, filename: str, **kwargs) -> "Program":
         """Assemble a PIO program in a file"""
-        with open(filename, "r", encoding="utf-8") as i:
+        with open(filename, encoding="utf-8") as i:
             program = i.read()
         return cls(program, **kwargs)
 
@@ -539,14 +520,10 @@ class Program:  # pylint: disable=too-few-public-methods
         print(
             f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};"
         )
-        print(
-            f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};"
-        )
+        print(f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};")
         sideset_pin_count = self.pio_kwargs.get("sideset_pin_count", 0)
         print(f"{qualifier} int {name}_sideset_pin_count = {sideset_pin_count};")
-        print(
-            f"{qualifier} bool {name}_sideset_enable = {+self.pio_kwargs['sideset_enable']};"
-        )
+        print(f"{qualifier} bool {name}_sideset_enable = {+self.pio_kwargs['sideset_enable']};")
         print(f"{qualifier} uint16_t {name}[] = " + "{")
         last_line = 0
         if linemap:
@@ -568,9 +545,7 @@ class Program:  # pylint: disable=too-few-public-methods
                 last_line += 1
         else:
             for i in range(0, len(self.assembled), 8):
-                print(
-                    "    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8])
-                )
+                print("    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8]))
         print("};")
         print()
 

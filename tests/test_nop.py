@@ -34,9 +34,7 @@ def test_sideset_opt() -> None:
 
 def test_set() -> None:
     # non happy path
-    assert_assembly_fails(
-        "set isr, 1", match="Invalid set destination 'isr'", errtype=ValueError
-    )
+    assert_assembly_fails("set isr, 1", match="Invalid set destination 'isr'", errtype=ValueError)
 
 
 def test_jmp() -> None:

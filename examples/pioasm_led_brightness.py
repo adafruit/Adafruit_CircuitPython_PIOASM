@@ -5,8 +5,10 @@
 # Adapted from the an example in Appendix C of RPi_PiPico_Digital_v10.pdf
 
 import time
+
 import board
 import rp2pio
+
 import adafruit_pioasm
 
 led_quarter_brightness = adafruit_pioasm.assemble(
@@ -30,20 +32,14 @@ led_full_brightness = adafruit_pioasm.assemble(
 )
 
 while True:
-    sm = rp2pio.StateMachine(
-        led_quarter_brightness, frequency=10000, first_set_pin=board.LED
-    )
+    sm = rp2pio.StateMachine(led_quarter_brightness, frequency=10000, first_set_pin=board.LED)
     time.sleep(1)
     sm.deinit()
 
-    sm = rp2pio.StateMachine(
-        led_half_brightness, frequency=10000, first_set_pin=board.LED
-    )
+    sm = rp2pio.StateMachine(led_half_brightness, frequency=10000, first_set_pin=board.LED)
     time.sleep(1)
     sm.deinit()
 
-    sm = rp2pio.StateMachine(
-        led_full_brightness, frequency=10000, first_set_pin=board.LED
-    )
+    sm = rp2pio.StateMachine(led_full_brightness, frequency=10000, first_set_pin=board.LED)
     time.sleep(1)
     sm.deinit()
