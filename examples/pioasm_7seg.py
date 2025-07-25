@@ -116,7 +116,7 @@ class SMSevenSegment:
         self._buf = array.array("H", (DIGITS_WT[0] & ~COM_WT[i] for i in range(4)))
         self._sm = rp2pio.StateMachine(
             _program.assembled,
-            frequency=2000,
+            frequency=4000,
             first_out_pin=first_pin,
             out_pin_count=14,
             auto_pull=True,
