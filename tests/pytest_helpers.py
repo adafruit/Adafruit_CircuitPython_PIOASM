@@ -25,9 +25,9 @@ def assert_assembles_to(source: str, expected: List[int]) -> None:
     actual = adafruit_pioasm.assemble(source)
     expected_bin = [nice_opcode(x) for x in expected]
     actual_bin = [nice_opcode(x) for x in actual]
-    assert (
-        expected_bin == actual_bin
-    ), f"Assembling {source!r}: Expected {expected_bin}, got {actual_bin}"
+    assert expected_bin == actual_bin, (
+        f"Assembling {source!r}: Expected {expected_bin}, got {actual_bin}"
+    )
 
 
 def assert_assembly_fails(
@@ -45,6 +45,6 @@ def assert_assembly_fails(
 
 def assert_pio_kwargs(source: str, **kw: Any) -> None:
     program = adafruit_pioasm.Program(source)
-    assert (
-        kw == program.pio_kwargs
-    ), f"Assembling {source!r}: Expected {kw}, got {program.pio_kwargs}"
+    assert kw == program.pio_kwargs, (
+        f"Assembling {source!r}: Expected {kw}, got {program.pio_kwargs}"
+    )

@@ -189,8 +189,8 @@ while True:
         bclk_pin=board.D5,  # L/R signal will be one pin higher, i.e. D6
     )
     print()
-    print(f"# actual sample frequency {PIO.frequency/4/CHANNELS/BITS:9.1f} Hz")
-    print(f"#               bit clock {PIO.frequency/4:9.1f} Hz")
+    print(f"# actual sample frequency {PIO.frequency / 4 / CHANNELS / BITS:9.1f} Hz")
+    print(f"#               bit clock {PIO.frequency / 4:9.1f} Hz")
     print()
     PIO.write_readinto(buffer_out, buffer_in)
     start = 0
@@ -199,11 +199,11 @@ while True:
     while start < len(buffer_in):
         print("# write: ", end="")
         for i in range(start, min(len(data), start + line_length)):
-            print(f"{data[i]:0{buffer_width/4}x} ", end=" ")
+            print(f"{data[i]:0{buffer_width / 4}x} ", end=" ")
         print()
         print("#  read: ", end="")
         for i in range(start, min(len(buffer_in), start + line_length)):
-            print(f"{buffer_in[i]:0{buffer_width/4}x} ", end=" ")
+            print(f"{buffer_in[i]:0{buffer_width / 4}x} ", end=" ")
         print()
         print()
         start += line_length

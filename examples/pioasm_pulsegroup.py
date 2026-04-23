@@ -54,7 +54,7 @@ class PulseItem:
     @duty_cycle.setter
     def duty_cycle(self, value):
         if value < 0 or value > self._maxval:
-            raise ValueError(f"value must be in the range(0, {self._maxval+1})")
+            raise ValueError(f"value must be in the range(0, {self._maxval + 1})")
         self._value = value
         self._recalculate()
 

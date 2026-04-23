@@ -518,7 +518,7 @@ class Program:
             program_lines = self.debuginfo[1].split("\n")
 
         print(
-            f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled)-1)};"
+            f"{qualifier} int {name}_wrap = {self.pio_kwargs.get('wrap', len(self.assembled) - 1)};"
         )
         print(f"{qualifier} int {name}_wrap_target = {self.pio_kwargs.get('wrap_target', 0)};")
         sideset_pin_count = self.pio_kwargs.get("sideset_pin_count", 0)
@@ -545,7 +545,7 @@ class Program:
                 last_line += 1
         else:
             for i in range(0, len(self.assembled), 8):
-                print("    " + ", ".join("0x%04x" % i for i in self.assembled[i : i + 8]))
+                print("    " + ", ".join(f"0x{i:04x}" for i in self.assembled[i : i + 8]))
         print("};")
         print()
 
